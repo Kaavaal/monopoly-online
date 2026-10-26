@@ -15,7 +15,7 @@ export function buildApp({ db, logger = false }: { db: Db; logger?: boolean }): 
 
   // Dependency order: a context is created after every context whose api it takes.
   const lobby = createLobbyModule({ db });
-  const board = createBoardModule({ db });
+  const board = createBoardModule({ db, lobby: lobby.api });
   const bank = createBankModule({ db });
   const turns = createTurnsModule({ db });
 
