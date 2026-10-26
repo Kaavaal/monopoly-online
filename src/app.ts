@@ -9,7 +9,8 @@ import { setErrorHandler } from './shared/http.js';
 import { createTurnsModule } from './turns/module.js';
 
 export function buildApp({ db, logger = false }: { db: Db; logger?: boolean }): FastifyInstance {
-  const app = Fastify({ logger });
+  // Unknown body fields fail validation (400) instead of being stripped silently.
+  const app = Fastify({ logger, ajv: { customOptions: { removeAdditional: false } } });
   setErrorHandler(app);
 
   // Dependency order: a context is created after every context whose api it takes.
