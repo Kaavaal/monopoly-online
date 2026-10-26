@@ -7,7 +7,7 @@ import { registerPlayerRoutes } from './infra/http/routes.js';
 import { createPlayerRepo } from './infra/sqlite/playerRepo.js';
 
 export interface LobbyApi {
-  players: { exists(id: string): boolean };
+  players: { exists(id: string): boolean; nameOf(id: string): string | undefined };
 }
 
 export function createLobbyModule(deps: { db: Db }): {
@@ -21,7 +21,10 @@ export function createLobbyModule(deps: { db: Db }): {
       registerPlayerRoutes(app, players);
     },
     api: {
-      players: { exists: (id) => playerRepo.findById(id) !== undefined },
+      players: {
+        exists: (id) => playerRepo.findById(id) !== undefined,
+        nameOf: (id) => playerRepo.findById(id)?.name,
+      },
     },
   };
 }

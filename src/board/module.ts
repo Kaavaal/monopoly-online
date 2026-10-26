@@ -15,6 +15,7 @@ export function createBoardModule(deps: { db: Db; lobby: LobbyApi }): {
 } {
   const properties = createPropertyService(createPropertyRepo(deps.db), {
     ownerExists: (id) => deps.lobby.players.exists(id),
+    ownerName: (id) => deps.lobby.players.nameOf(id),
   });
   return {
     register(app) {
