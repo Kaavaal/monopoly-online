@@ -6,17 +6,25 @@ import { createPlayerService } from './app/service.js';
 import { registerPlayerRoutes } from './infra/http/routes.js';
 import { createPlayerRepo } from './infra/sqlite/playerRepo.js';
 
-export interface LobbyApi {}
+export interface LobbyApi {
+  players: { exists(id: string): boolean; nameOf(id: string): string | undefined };
+}
 
 export function createLobbyModule(deps: { db: Db }): {
   register(app: FastifyInstance): void;
   api: LobbyApi;
 } {
-  const players = createPlayerService(createPlayerRepo(deps.db));
+  const playerRepo = createPlayerRepo(deps.db);
+  const players = createPlayerService(playerRepo);
   return {
     register(app) {
       registerPlayerRoutes(app, players);
     },
-    api: {},
+    api: {
+      players: {
+        exists: (id) => playerRepo.findById(id) !== undefined,
+        nameOf: (id) => playerRepo.findById(id)?.name,
+      },
+    },
   };
 }
