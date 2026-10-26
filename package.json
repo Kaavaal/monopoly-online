@@ -1,6 +1,6 @@
 {
   "name": "monopoly-online",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Online Monopoly backend: Fastify + SQLite, hexagonal per bounded context",
   "type": "module",
   "private": true,
