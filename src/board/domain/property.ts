@@ -1,4 +1,4 @@
-// Property: A title deed: named, color-grouped lot with price, rent and an optional owner..
+// Property: A title deed: named, color-grouped lot with price, rent and an optional owner.
 import { invalid } from '../../shared/errors.js';
 
 export const COLOR_GROUPS = ['brown', 'light-blue', 'pink', 'orange', 'red', 'yellow', 'green', 'dark-blue'] as const;

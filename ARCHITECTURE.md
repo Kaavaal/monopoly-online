@@ -21,14 +21,14 @@ graph LR
   turns --> bank
 ```
 
-Arrows point from the context that calls to the one it calls. They are planned, not wired yet: a context
-starts taking another's `api` with the first feature that needs it. `src/app.ts` creates the modules in this
+Arrows point from the context that calls to the one it calls. So far only `board` → `lobby` is wired. The others
+are still planned. A context starts taking another's `api` with the first feature that needs it. `src/app.ts` creates the modules in this
 order (lobby, board, bank, turns), so a context can only take the api of one created before it, and the
 graph stays acyclic.
 
 ## Dependency rule
 
-Inside a context, imports point inward:
+Inside a context, imports point inward.
 
 ```
 infra/http, infra/sqlite  ->  app  ->  domain  ->  shared/errors
@@ -40,10 +40,10 @@ module.ts                 ->  everything in its own context
 - `infra/` implements what `domain/` declares.
 - `shared/` imports no context.
 
-`pnpm arch:check` checks part of this with dependency-cruiser: `domain-no-infra`, `domain-no-app`,
+`pnpm arch:check` checks part of this with the dependency-cruiser rules `domain-no-infra`, `domain-no-app`,
 `app-no-infra`, `shared-no-contexts`, `no-circular`, and the public api rule below. Type-only imports count.
-Two parts are conventions only, kept by review: `domain/` staying free of `fastify`, `node:sqlite` and the
-rest of `shared/`, and contexts never importing `src/app.ts` or `src/index.ts`.
+Two parts are conventions only, kept by review. `domain/` stays free of `fastify`, `node:sqlite` and the
+rest of `shared/`, and contexts never import `src/app.ts` or `src/index.ts`.
 
 ## Public api rule
 
@@ -51,18 +51,18 @@ A context may import another context only through `src/<other>/module.ts` (`no-c
 everything else in a context folder is private. By convention it imports only the exported `<Ctx>Api` type
 from there; a value import such as `createBoardModule` is not flagged, so don't rely on the check for it.
 
-The api object itself is handed over in `src/app.ts`, the composition root:
+The api object itself is handed over in `src/app.ts`, the composition root.
 
 ```ts
 const lobby = createLobbyModule({ db });
 const board = createBoardModule({ db, lobby: lobby.api });
 ```
 
-`src/app.ts` and `src/index.ts` are the wiring layer and the only files that import more than one context.
+`src/app.ts` and `src/index.ts` are the wiring layer. Only `src/app.ts` imports more than one context.
 
 ## Slice anatomy
 
-A feature in context `<ctx>` adds:
+A feature in context `<ctx>` adds these files.
 
 ```
 src/<ctx>/
@@ -75,10 +75,10 @@ migrations/NNNN_<ctx>_<name>.sql   forward-only, applied once each by src/shared
 test/<ctx>/<entity>.test.ts        HTTP-level tests through makeTestApp()
 ```
 
-Errors: domain and app throw `notFound`, `conflict` or `invalid` from `shared/errors`; `shared/http.ts`
+Domain and app throw `notFound`, `conflict` or `invalid` from `shared/errors`; `shared/http.ts`
 turns them into `{ error: { code, message } }` with the matching status. Schema validation failures become
 400 `invalid`; Fastify's own client errors (malformed JSON, wrong content type, body too large) keep their
 4xx with code `bad_request`; an unknown route is 404 `not_found`; anything unexpected becomes 500 `internal`
-with no details. A SQLite constraint error is unexpected too, so a duplicate check belongs in the service:
-look up first, throw `conflict`, then insert (`node:sqlite` is synchronous, so with no `await` between the
-two nothing can race).
+with no details. A SQLite constraint error is unexpected too, so a duplicate check belongs in the service.
+The service looks up first, throws `conflict`, then inserts. `node:sqlite` is synchronous, so with no `await` between the
+lookup and the insert nothing can race.

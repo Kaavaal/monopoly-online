@@ -2,7 +2,7 @@
 
 Started: 2026-10-26T21:39:25Z
 
-A title deed on the board: a named, color-grouped lot with a purchase price and a rent, owned by a lobby player once bought.
+A title deed on the board, with a name, a color group, a purchase price and a rent. A lobby player owns it once it is bought.
 
 ## Routes
 
@@ -15,7 +15,7 @@ POST, GET, GET /:id, PATCH /:id, DELETE /:id on /properties.
 - `price`: int 1–400 inclusive.
 - `rent`: int ≥ 0, no upper bound (request gave none).
 - `ownerId`: optional; omitted or `null` = unowned deed. PATCH with `null` clears the owner.
-- No cross-context FK: deleting a player leaves their properties pointing at a gone id (out of scope here).
+- No cross-context FK, so deleting a player leaves their properties pointing at a gone id (out of scope here).
 - No rule tying `rent` to `price` (request gave none).
 
 ## Domain rules for feature-tests
