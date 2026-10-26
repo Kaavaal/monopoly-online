@@ -1,0 +1,47 @@
+# Suggests the next docs/CHANGELOG.md section as a patch artifact. It never commits, tags, pushes or opens a PR:
+# download release.patch, `git apply` it locally, review, then commit and tag by hand.
+name: release-notes
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version X.Y.Z to release; empty means the next one from the commits
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  suggest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # the whole history and its tags: the range starts at the latest v* tag
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Draft the changelog section
+        env:
+          # the only secret; locally the claude.ai login is used instead
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          VERSION: ${{ inputs.version }}
+        run: pnpm release:notes ${VERSION:+--version "$VERSION"}
+      - name: Write release.patch (none when there is nothing to release)
+        run: |
+          git diff > release.patch
+          test -s release.patch || { echo '::notice::nothing to release since the last tag'; rm release.patch; }
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: release.patch
+          # no commits since the last v* tag: the run stays green with the notice above and no artifact
+          if-no-files-found: ignore
