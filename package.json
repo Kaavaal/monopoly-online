@@ -1,0 +1,32 @@
+{
+  "name": "monopoly-online",
+  "version": "0.1.0",
+  "description": "Online Monopoly backend: Fastify + SQLite, hexagonal per bounded context",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "author": "Kaavaal",
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.0.9",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "migrate": "tsx scripts/migrate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "arch:check": "depcruise --config .dependency-cruiser.cjs src",
+    "check": "pnpm typecheck && pnpm test && pnpm arch:check"
+  },
+  "dependencies": {
+    "fastify": "5.12.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "dependency-cruiser": "18.7.0",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.0.5"
+  }
+}
