@@ -2,7 +2,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { conflict, invalid, notFound } from '../../shared/errors.js';
-import { type Property, type PropertyRefs, type PropertyRepository, validateName, validateColorGroup, validatePrice, validateRent } from '../domain/property.js';
+import { type Property, type PropertyRefs, type PropertyRepository, type PropertyView, validateName, validateColorGroup, validatePrice, validateRent } from '../domain/property.js';
 
 export type PropertyService = ReturnType<typeof createPropertyService>;
 
@@ -19,6 +19,11 @@ export function createPropertyService(properties: PropertyRepository, refs: Prop
     const property = properties.findById(id);
     if (!property) throw notFound(`property ${id} not found`);
     return property;
+  }
+
+  function view(property: Property): PropertyView {
+    const ownerName = property.ownerId === null ? undefined : refs.ownerName(property.ownerId);
+    return { ...property, ownerName: ownerName ?? null };
   }
 
   function assertNameFree(name: string, exceptId?: string): void {
@@ -47,11 +52,13 @@ export function createPropertyService(properties: PropertyRepository, refs: Prop
       return property;
     },
 
-    list(): Property[] {
-      return properties.list();
+    list(): PropertyView[] {
+      return properties.list().map(view);
     },
 
-    get,
+    get(id: string): PropertyView {
+      return view(get(id));
+    },
 
     update(id: string, patch: Partial<PropertyInput>): Property {
       const property = { ...get(id) };

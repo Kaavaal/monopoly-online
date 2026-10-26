@@ -25,6 +25,12 @@ const property = {
   additionalProperties: false,
 } as const;
 
+const propertyView = {
+  ...property,
+  required: [...property.required, 'ownerName'],
+  properties: { ...property.properties, ownerName: { type: ['string', 'null'] } },
+} as const;
+
 const idParams = {
   type: 'object',
   required: ['id'],
@@ -52,13 +58,13 @@ export function registerPropertyRoutes(app: FastifyInstance, properties: Propert
 
   app.get(
     '/properties',
-    { schema: { response: { 200: { type: 'array', items: property } } } },
+    { schema: { response: { 200: { type: 'array', items: propertyView } } } },
     async () => properties.list(),
   );
 
   app.get<{ Params: IdParams }>(
     '/properties/:id',
-    { schema: { params: idParams, response: { 200: property } } },
+    { schema: { params: idParams, response: { 200: propertyView } } },
     async (req) => properties.get(req.params.id),
   );
 

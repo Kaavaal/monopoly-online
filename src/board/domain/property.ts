@@ -20,6 +20,11 @@ export interface Property {
   createdAt: string;
 }
 
+/** What GET returns: the deed plus its owner's current name, read from lobby. */
+export interface PropertyView extends Property {
+  ownerName: string | null;
+}
+
 export interface PropertyRepository {
   insert(property: Property): void;
   update(property: Property): void;
@@ -35,6 +40,8 @@ export interface PropertyRepository {
 export interface PropertyRefs {
   /** lobby.players */
   ownerExists(id: string): boolean;
+  /** lobby.players; undefined when no such player. */
+  ownerName(id: string): string | undefined;
 }
 
 /** Trims, then counts code points (as JSON schema minLength/maxLength do). */

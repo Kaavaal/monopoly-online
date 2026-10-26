@@ -112,7 +112,13 @@ describe('GET /properties', () => {
     const res = await app.inject({ method: 'GET', url: '/properties' });
     expect(res.statusCode).toBe(200);
     expect(res.json()).toHaveLength(2);
-    expect(res.json()).toEqual(expect.arrayContaining([a, b]));
+    expect(res.json()).toEqual(expect.arrayContaining([{ ...a, ownerName: 'Alice' }, { ...b, ownerName: 'Alice' }]));
+  });
+
+  it('returns ownerName null for an unowned deed', async () => {
+    const a = await createOk({ ...valid(), ownerId: null });
+    const res = await app.inject({ method: 'GET', url: '/properties' });
+    expect(res.json()).toEqual([{ ...a, ownerName: null }]);
   });
 });
 
@@ -121,7 +127,21 @@ describe('GET /properties/:id', () => {
     const a = await createOk();
     const res = await app.inject({ method: 'GET', url: `/properties/${a.id}` });
     expect(res.statusCode).toBe(200);
-    expect(res.json()).toEqual(a);
+    expect(res.json()).toEqual({ ...a, ownerName: 'Alice' });
+  });
+
+  it('returns ownerName null for an unowned deed', async () => {
+    const a = await createOk({ ...valid(), ownerId: null });
+    const res = await app.inject({ method: 'GET', url: `/properties/${a.id}` });
+    expect(res.json()).toEqual({ ...a, ownerName: null });
+  });
+
+  it('reads ownerName from lobby, so a renamed player shows the new name', async () => {
+    const a = await createOk();
+    const renamed = await app.inject({ method: 'PATCH', url: `/players/${refs.ownerId}`, payload: { name: 'Alicia' } });
+    expect(renamed.statusCode).toBe(200);
+    const res = await app.inject({ method: 'GET', url: `/properties/${a.id}` });
+    expect(res.json().ownerName).toBe('Alicia');
   });
 
   it('answers 404 for an unknown id', async () => {
@@ -141,7 +161,7 @@ describe('PATCH /properties/:id', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ ...a, ...changes });
     const got = await app.inject({ method: 'GET', url: `/properties/${a.id}` });
-    expect(got.json()).toEqual({ ...a, ...changes });
+    expect(got.json()).toEqual({ ...a, ...changes, ownerName: 'Alice' });
   });
 
   it('updates name and keeps the rest', async () => {
@@ -169,7 +189,7 @@ describe('PATCH /properties/:id', () => {
     expect(res.statusCode).toBe(200);
     expect(res.json()).toEqual({ ...a, ownerId: bob.json().id });
     const got = await app.inject({ method: 'GET', url: `/properties/${a.id}` });
-    expect(got.json()).toEqual({ ...a, ownerId: bob.json().id });
+    expect(got.json()).toEqual({ ...a, ownerId: bob.json().id, ownerName: 'Bob' });
   });
 
   it.each([
