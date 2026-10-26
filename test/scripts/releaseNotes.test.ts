@@ -30,6 +30,32 @@ const PAYLOAD = {
   ],
 };
 
+const BEFORE = `# Changelog
+
+## Unreleased
+
+## [0.1.0] - 2026-10-01
+
+### Added
+
+- Project skeleton
+`;
+
+const SECTION = `## [0.2.0] - 2026-10-26
+
+### Added
+
+- Players can join the lobby by name (a1b2c3d)
+
+### Fixed
+
+- An empty player name is rejected (b2c3d4e)
+
+### Internal
+
+- CI runs the full check on every pull request (c3d4e5f)
+`;
+
 const CHANGELOG = `# Changelog
 
 ## Unreleased
@@ -55,15 +81,28 @@ const CHANGELOG = `# Changelog
 - Project skeleton
 `;
 
-const FACTS = { version: '0.2.0', previous: 'v0.1.0', date: '2026-10-26', commits: COMMITS, changelog: CHANGELOG };
+const FACTS = {
+  version: '0.2.0',
+  previous: 'v0.1.0',
+  date: '2026-10-26',
+  commits: COMMITS,
+  before: BEFORE,
+  changelog: CHANGELOG,
+};
 
 const withEntries = (entries: unknown[]) => ({ ...PAYLOAD, entries });
 
 describe('nextVersion', () => {
-  it('bumps the minor when any commit is a feat', () => {
+  it('bumps the minor when any commit is a feat, in any case', () => {
     expect(nextVersion('v0.1.0', ['fix: a', 'feat(lobby): b'])).toBe('0.2.0');
-    expect(nextVersion('v1.4.2', ['feat!: drop the old api'])).toBe('1.5.0');
-    expect(nextVersion('v0.1.3', ['feat: c'])).toBe('0.2.0');
+    expect(nextVersion('v1.4.2', ['feat(bank): c'])).toBe('1.5.0');
+    expect(nextVersion('v0.1.3', ['Feat: c'])).toBe('0.2.0');
+  });
+
+  it('bumps the major on a breaking commit of any type, the minor before 1.0', () => {
+    expect(nextVersion('v1.4.2', ['feat!: drop the old api'])).toBe('2.0.0');
+    expect(nextVersion('v1.3.1', ['refactor!: drop api'])).toBe('2.0.0');
+    expect(nextVersion('v0.3.1', ['fix(bank)!: drop field'])).toBe('0.4.0');
   });
 
   it('bumps the patch otherwise', () => {
@@ -100,6 +139,22 @@ describe('bashRefusal', () => {
     expect(bashRefusal('git show a1b2c3d', RANGE)).toMatch(/only/);
     expect(bashRefusal('git show --stat a1b2c3d && cat .env', RANGE)).toMatch(/only/);
     expect(bashRefusal('git show --stat', RANGE)).toMatch(/only/);
+  });
+
+  it('refuses quotes that move the range into another word', () => {
+    expect(bashRefusal("git log --no-merges '--format=%h %s v0.1.0..HEAD'", RANGE)).toMatch(/only/);
+    expect(bashRefusal('git log --no-merges --format=%h %s v0.1.0..HEAD', RANGE)).toMatch(/only/);
+    expect(bashRefusal("git log --no-merges --format='%h %s v0.1.0..HEAD", RANGE)).toMatch(/only/);
+  });
+
+  it('refuses newlines and anything else the shell acts on', () => {
+    expect(bashRefusal('git show --stat a1b2c3d\na1b2c3d', RANGE)).toMatch(/only/);
+    expect(bashRefusal('git show --stat a1b2c3d\\\na1b2c3d', RANGE)).toMatch(/only/);
+    expect(bashRefusal('git show --stat a1b2c3d; touch pwned', RANGE)).toMatch(/only/);
+    expect(bashRefusal('git show --stat $(echo a1b2c3d)', RANGE)).toMatch(/only/);
+    expect(bashRefusal('git show --stat a1b2c3d b2c3d4e', RANGE)).toMatch(/only/);
+    const tagged = { range: 'v0.2.0;touch${IFS}pwned..HEAD', commits: COMMITS };
+    expect(bashRefusal("git log --no-merges --format='%h %s' v0.2.0;touch${IFS}pwned..HEAD", tagged)).toMatch(/only/);
   });
 
   it('refuses everything else', () => {
@@ -205,7 +260,8 @@ describe('verifyNotes', () => {
       { type: 'added', summary: 'Players can join the lobby by name', commits: ['a1b2c3d', 'd4e5f60'] },
       { type: 'fixed', summary: 'An empty player name is rejected', commits: ['b2c3d4e', 'a1b2c3d4e5f6'] },
     ];
-    expect(verifyNotes(withEntries(entries), FACTS)).toEqual([
+    // The changelog no longer matches these entries either; only the git checks, which come first, matter here.
+    expect(verifyNotes(withEntries(entries), FACTS).slice(0, 3)).toEqual([
       'd4e5f60 is not a commit of v0.1.0..HEAD',
       'a1b2c3d "feat(lobby): create player" is filed 2 times, expected once',
       'c3d4e5f "ci: run pnpm check on pull requests" is filed 0 times, expected once',
@@ -224,20 +280,59 @@ describe('verifyNotes', () => {
     ]);
   });
 
+  it('passes a section with other blank lines', () => {
+    const changelog = CHANGELOG.replace('(c3d4e5f)\n\n## [0.1.0]', '(c3d4e5f)\n## [0.1.0]');
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog })).toEqual([]);
+  });
+
   it('flags a summary that is only in another section', () => {
     const changelog = CHANGELOG.replace('- Players can join the lobby by name (a1b2c3d)\n', '').replace(
       '- Project skeleton',
       '- Players can join the lobby by name',
     );
     expect(verifyNotes(PAYLOAD, { ...FACTS, changelog })).toEqual([
-      '"## [0.2.0] - 2026-10-26" does not hold "Players can join the lobby by name"',
+      '"## [0.2.0] - 2026-10-26" lacks the line "- Players can join the lobby by name (a1b2c3d)"',
+      'docs/CHANGELOG.md changed outside "## [0.2.0] - 2026-10-26"',
     ]);
   });
 
-  it('flags a section that is not under ## Unreleased', () => {
+  it('flags a bullet under the wrong group, with a wrong sha, and an empty group', () => {
+    const changelog = CHANGELOG.replace(
+      '### Added\n\n- Players can join the lobby by name (a1b2c3d)\n\n### Fixed\n\n',
+      '### Changed\n\n### Fixed\n\n- Players can join the lobby by name (deadbee)\n',
+    );
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog })).toEqual([
+      '"## [0.2.0] - 2026-10-26" lacks the line "### Added"',
+      '"## [0.2.0] - 2026-10-26" lacks the line "- Players can join the lobby by name (a1b2c3d)"',
+      '"## [0.2.0] - 2026-10-26" has a line the JSON does not: "### Changed"',
+      '"## [0.2.0] - 2026-10-26" has a line the JSON does not: "- Players can join the lobby by name (deadbee)"',
+    ]);
+  });
+
+  it('flags the right bullets under swapped groups', () => {
+    const changelog = CHANGELOG.replace('(a1b2c3d)', '(b2c3d4e)')
+      .replace('- An empty player name is rejected (b2c3d4e)', '- Players can join the lobby by name (a1b2c3d)')
+      .replace('- Players can join the lobby by name (b2c3d4e)', '- An empty player name is rejected (b2c3d4e)');
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog })).toEqual([
+      `"## [0.2.0] - 2026-10-26" holds the JSON's lines in another order, group or count`,
+    ]);
+  });
+
+  it('flags a section that is not right below ## Unreleased', () => {
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog: `${BEFORE}\n${SECTION}` })).toEqual([
+      '"## [0.2.0] - 2026-10-26" is not right below "## Unreleased"',
+    ]);
     const changelog = CHANGELOG.replace('## Unreleased\n\n', '') + '\n## Unreleased\n';
     expect(verifyNotes(PAYLOAD, { ...FACTS, changelog })).toEqual([
-      '"## [0.2.0] - 2026-10-26" is not under "## Unreleased"',
+      '"## [0.2.0] - 2026-10-26" is not right below "## Unreleased"',
+      'docs/CHANGELOG.md changed outside "## [0.2.0] - 2026-10-26"',
     ]);
+  });
+
+  it('flags a changelog that lost its title or history, or got the section twice', () => {
+    const changed = ['docs/CHANGELOG.md changed outside "## [0.2.0] - 2026-10-26"'];
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog: `## Unreleased\n\n${SECTION}` })).toEqual(changed);
+    const twice = CHANGELOG.replace('## [0.1.0]', `${SECTION}\n## [0.1.0]`);
+    expect(verifyNotes(PAYLOAD, { ...FACTS, changelog: twice })).toEqual(changed);
   });
 });

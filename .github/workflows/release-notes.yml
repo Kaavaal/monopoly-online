@@ -35,9 +35,13 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           VERSION: ${{ inputs.version }}
         run: pnpm release:notes ${VERSION:+--version "$VERSION"}
-      - run: git diff > release.patch
+      - name: Write release.patch (none when there is nothing to release)
+        run: |
+          git diff > release.patch
+          test -s release.patch || { echo '::notice::nothing to release since the last tag'; rm release.patch; }
       - uses: actions/upload-artifact@v7
         with:
           name: release-notes
           path: release.patch
-          if-no-files-found: error
+          # no commits since the last v* tag: the run stays green with the notice above and no artifact
+          if-no-files-found: ignore

@@ -60,26 +60,43 @@ const GROUPS = [
 const git = (...args) =>
   execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
 
-/** Next version after tag `vX.Y.Z`: any `feat` commit bumps the minor, anything else the patch. */
+/**
+ * Next version after tag `vX.Y.Z`: a breaking commit (`type!:`) bumps the major (the minor before 1.0), any
+ * `feat` commit the minor, anything else the patch. Commit types match in any case.
+ */
 export function nextVersion(previousTag, subjects) {
   const match = /^v(\d+)\.(\d+)\.(\d+)$/.exec(previousTag);
   if (!match) return null;
   const [major, minor, patch] = match.slice(1).map(Number);
-  return subjects.some((subject) => /^feat(\([^)]*\))?!?:/.test(subject))
+  if (subjects.some((subject) => /^\w+(\([^)]*\))?!:/.test(subject)))
+    return major > 0 ? `${major + 1}.0.0` : `0.${minor + 1}.0`;
+  return subjects.some((subject) => /^feat(\([^)]*\))?:/i.test(subject))
     ? `${major}.${minor + 1}.0`
     : `${major}.${minor}.${patch + 1}`;
 }
 
+// A shell word: plain characters and quoted runs, e.g. `--format='%h %s'`.
+const SHELL_WORD = /(?:[^\s'"]|'[^']*'|"[^"]*")+/g;
+
 /**
  * Prefix rules match the command as written and `git show` prints any blob (`git show HEAD:.env`), so the
- * PreToolUse hook lets through only the two commands the prompt names, for this range and its commits.
+ * PreToolUse hook lets through only the two commands the prompt names, for this range and its commits. The
+ * command may hold only word characters, spaces, `.%=/-` and balanced quotes: no newline, `;`, `$`, `\`,
+ * redirect or anything else the shell acts on. It is split into words the way the shell would split it.
  */
 export function bashRefusal(command, { range, commits }) {
-  const plain = command.replace(/['"\\]/g, '').trim().replace(/\s+/g, ' ');
-  if (plain === `git log --no-merges --format=%h %s ${range}`) return null;
-  const shas = plain.match(/^git show --stat((?: [0-9a-f]{7,40})+)$/)?.[1]?.trim().split(' ');
-  if (shas?.every((sha) => commits.some((commit) => commit.sha.startsWith(sha)))) return null;
-  return `only \`git log --no-merges --format='%h %s' ${range}\` and \`git show --stat <sha>...\` of its commits may run`;
+  const refusal =
+    `only \`git log --no-merges --format='%h %s' ${range}\` and \`git show --stat <sha>...\` of its commits may run`;
+  if (!/^[\w .%'"=\/-]*$/.test(command) || command.replace(SHELL_WORD, '').trim()) return refusal;
+  const words = (command.match(SHELL_WORD) ?? []).map((word) =>
+    word.replace(/'([^']*)'|"([^"]*)"/g, (_, single, double) => single ?? double),
+  );
+  // Words cannot hold a newline, so joining on it compares the word lists exactly.
+  if (words.join('\n') === ['git', 'log', '--no-merges', '--format=%h %s', range].join('\n')) return null;
+  const shas = words.slice(3);
+  const known = (sha) => /^[0-9a-f]{7,40}$/.test(sha) && commits.some((commit) => commit.sha.startsWith(sha));
+  if (words.slice(0, 3).join('\n') === 'git\nshow\n--stat' && shas.length && shas.every(known)) return null;
+  return refusal;
 }
 
 /** Only a `success` result that carries the schema-checked JSON counts as an answer. */
@@ -126,10 +143,12 @@ export function validatePayload(value, schema = SCHEMA, path = '$') {
 }
 
 /**
- * Checks a schema-valid payload against git and the changelog text; returns every mismatch. Each commit of the
- * range is filed exactly once, and the new section sits under `## Unreleased` holding every summary.
+ * Checks a schema-valid payload against git and the changelog before and after the run; returns every
+ * mismatch. Each commit of the range is filed exactly once. The new section is the first thing below
+ * `## Unreleased` and is the payload line for line (groups in order, empty ones left out, bullets with their
+ * shas); blank lines aside, the rest of the file is what it was before the run.
  */
-export function verifyNotes(payload, { version, previous, date, commits, changelog }) {
+export function verifyNotes(payload, { version, previous, date, commits, before, changelog }) {
   const problems = [];
   if (payload.version !== version) problems.push(`version is ${payload.version}, expected ${version}`);
   if (payload.previous !== previous) problems.push(`previous is ${payload.previous}, expected ${previous}`);
@@ -154,12 +173,28 @@ export function verifyNotes(payload, { version, previous, date, commits, changel
     return problems;
   }
   const unreleased = lines.indexOf('## Unreleased');
-  if (unreleased === -1 || unreleased > start) problems.push(`"${heading}" is not under "## Unreleased"`);
+  if (unreleased === -1 || unreleased > start || lines.slice(unreleased + 1, start).some((line) => line.trim()))
+    problems.push(`"${heading}" is not right below "## Unreleased"`);
+
+  const nonBlank = (list) => list.filter((line) => line.trim());
   const end = lines.findIndex((line, i) => i > start && line.startsWith('## '));
-  const section = lines.slice(start, end === -1 ? undefined : end).join('\n');
-  for (const { summary } of payload.entries) {
-    if (!section.includes(summary)) problems.push(`"${heading}" does not hold "${summary}"`);
+  const actual = nonBlank(lines.slice(start, end === -1 ? undefined : end));
+  const expected = [heading];
+  for (const [type, title] of GROUPS) {
+    const entries = payload.entries.filter((entry) => entry.type === type);
+    if (!entries.length) continue;
+    expected.push(`### ${title}`, ...entries.map((entry) => `- ${entry.summary} (${entry.commits.join(', ')})`));
   }
+  const missing = expected.filter((line) => !actual.includes(line));
+  const extra = actual.filter((line) => !expected.includes(line));
+  for (const line of missing) problems.push(`"${heading}" lacks the line "${line}"`);
+  for (const line of extra) problems.push(`"${heading}" has a line the JSON does not: "${line}"`);
+  if (!missing.length && !extra.length && actual.join('\n') !== expected.join('\n'))
+    problems.push(`"${heading}" holds the JSON's lines in another order, group or count`);
+
+  const rest = [...lines.slice(0, start), ...(end === -1 ? [] : lines.slice(end))];
+  if (nonBlank(rest).join('\n') !== nonBlank(before.split('\n')).join('\n'))
+    problems.push(`${CHANGELOG} changed outside "${heading}"`);
   return problems;
 }
 
@@ -235,6 +270,9 @@ async function main() {
   } catch {
     return fail('no v* tag reachable from HEAD, so there is no range to describe; tag the last release first');
   }
+  // The tag goes into the prompt and the Bash guard's commands; keep it to characters the shell leaves alone.
+  if (!/^[\w.\/-]+$/.test(previous))
+    return fail(`tag ${JSON.stringify(previous)} holds characters other than [A-Za-z0-9_./-]`);
   const range = `${previous}..HEAD`;
   const commits = git('log', '--no-merges', '--format=%H%x09%s', range)
     .split('\n')
@@ -256,7 +294,7 @@ async function main() {
 
   const file = `${root}/${CHANGELOG}`;
   if (!existsSync(file)) return fail(`${CHANGELOG} does not exist`);
-  if (git('status', '--porcelain', '--', CHANGELOG))
+  if (git('-C', root, 'status', '--porcelain', '--', CHANGELOG))
     return fail(`${CHANGELOG} has uncommitted changes; commit or restore them first`);
   const before = readFileSync(file, 'utf8');
   if (before.split('\n').some((line) => line.startsWith(`## [${version}]`)))
@@ -329,13 +367,14 @@ async function main() {
   console.error('[verify] schema OK');
 
   const changelog = readFileSync(file, 'utf8');
-  const problems = verifyNotes(outcome.payload, { version, previous, date, commits, changelog });
+  const problems = verifyNotes(outcome.payload, { version, previous, date, commits, before, changelog });
   if (problems.length) {
-    console.error('[verify] the notes do not match git:');
+    console.error('[verify] the notes do not match git or the changelog:');
     for (const problem of problems) console.error(`  - ${problem}`);
     return 2;
   }
-  console.error(`[verify] all ${commits.length} commits of ${range} filed once; ## [${version}] holds every summary`);
+  console.error(`[verify] all ${commits.length} commits of ${range} filed once`);
+  console.error(`[verify] ## [${version}] right below ## Unreleased, the JSON line for line; rest unchanged`);
   console.error(`[done] ${CHANGELOG} changed in the working tree; review with \`git diff\`, nothing committed`);
   return 0;
 }
