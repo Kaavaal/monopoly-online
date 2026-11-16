@@ -1,94 +1,137 @@
 ---
-name: write-prd
-model: opus
-effort: high
-agents: [critic]
+name: game-prd
 description: >
-  Use to turn a raw feature idea into a reviewed PRD.md — a lightweight Socratic interview
-  front (capture the idea, deep-dive the problem) merged with a full product spec (context,
-  goals, user stories, acceptance criteria, NFRs, KPIs). Triggers on "/sdlc:write-prd {slug}",
-  "write PRD for {slug}", "draft PRD for {slug}", "PRD для {slug}", "write spec for {slug}",
-  "product requirements for {slug}", "напиши PRD {slug}", "опиши вимоги", "зафіксуй ідею".
-  Opens by setting the interview-depth dial (easy/medium/hard), drafts from templates/PRD-template.md,
-  validates each acceptance criterion Socratically, runs a clean-context critic (sdlc:critic),
-  then writes docs/features/{slug}/PRD.md. Hard refuse if idea-brief.md or CONTEXT.md missing.
-triggers:
-  - /sdlc:write-prd
-  - "write PRD for"
-  - "draft PRD for"
-  - "PRD для"
-  - "write spec for"
-  - "product requirements for"
-stage: "03"
+  PRD for a monopoly-online feature, written with the game owner. Same flow as the SDLC write-prd skill
+  (read inputs, settle open questions, draft, walk each section, clean-context critic, write), tuned to this
+  backend: offer and turn lifecycles as a state machine, who may do what per glossary role, refusals mapped to
+  the three error kinds in src/shared/errors.ts, and NFR defaults measured on this stack. Writes
+  docs/features/<slug>/game-prd.md. Use on "/game-prd <slug>", "game PRD for <feature>".
+argument-hint: <slug> [--reference src/<ctx>]
 ---
 
-# Skill: write-prd (SDLC stage 03 — PRD drafter)
+# game-prd
 
-Turns a one-line idea into a reviewed `PRD.md`: a lightweight interview captures and stress-tests the idea, then the skill drafts a product spec (context → goals → user stories → acceptance criteria → NFRs → KPIs), validates it Socratically, and runs a clean-context critic before writing. Less typing, more reviewing. This file is the spine; detail lives in `references/`.
+Turns a confirmed brief into `docs/features/<slug>/game-prd.md`. The reader is whoever runs architecture and
+API design next, so the PRD says what players can do and what the server refuses, and hands over a refusal
+table they can turn into error codes without asking again.
 
-The Socratic machine, the critic, and the ask-style are **shared** — this skill keeps only its deltas:
-→ [`../_shared/socratic-loop.md`](../_shared/socratic-loop.md) · [`../_shared/critic.md`](../_shared/critic.md) · [`../_shared/ask-style.md`](../_shared/ask-style.md)
+The person answering is the game owner. Rules of the table are theirs to decide; never answer a question for
+them.
 
-Depth governs question volume + autonomy → [`../_shared/interview-depth.md`](../_shared/interview-depth.md).
+## Before you start
 
-## Owner
+1. Read `CLAUDE.md`, `ARCHITECTURE.md` (context map, slice anatomy) and `src/shared/errors.ts`.
+2. Required, stop with a message if missing:
+   - `docs/features/<slug>/CONTEXT.md`, the glossary. Its roles are the only roles the PRD may use.
+   - a brief with `status: Confirmed` in its frontmatter: `game-brief.md` first, else `idea-brief.md`.
+     A brief in any other status is not an input. Say which one you took.
+3. Reference context: the `--reference src/<ctx>` argument, or the shipped context the brief calls nearest.
+   Read its `domain/` and `app/service.ts` and note which checks throw `notFound`, `conflict`, `invalid`.
+   No other channels: no wiki, no ticket tracker, no repo-wide scan.
+4. If `docs/features/<slug>/game-prd.md` exists, update it instead of starting over.
 
-PM + Tech Lead (co-authors). PM drives goals / non-goals / KPIs; Tech Lead drives context patterns and the acceptance-criteria coverage.
+## Asking
 
-## Inputs
+Every question goes through `AskUserQuestion`, up to 4 per call, in the language the person writes in. Each
+option says what lands in the PRD and what it costs later. No depth dial and no size question: a game feature
+is small, and `.size` is read if present, never asked.
 
-**Hard required** (skill stops without them):
+## Flow
 
-- `<slug>` — kebab-case feature slug.
-- `docs/features/<slug>/idea-brief.md` — problem, RICE, Recommendation (§13), Out of scope (§6). Missing → «run `/sdlc:interview <slug>` first».
-- `docs/features/<slug>/CONTEXT.md` — canonical glossary (role names, domain terms). Missing → «run `/sdlc:fix-term <slug>` first». No silent fallback.
+### 1. Settle the brief's open questions
 
-**Optional**:
-- `docs/features/<slug>/.size` — depth hint (MVP vs Full per the size matrix). Read if present; **established here if absent** (step 1 classifies + writes it), so downstream stages never silently default to M.
-- `--reference <path-to-module>` — passed at invocation; pre-selects the «Reference module code» channel in step 3.
+Collect the brief's open questions due at this stage ("write-prd", "PRD") and its edge cases that have no
+answer yet. Ask them first, in batches. A table rule left open here becomes a guess in an AC.
 
-## Protocol
+### 2. Glossary on the spot
 
-1. **Prereq check + read context + set interview depth.** `test -f` both required inputs and stop with the appropriate error if either is missing. Then: if `CONTEXT.md` exists, load its `## Glossary` as session state (canonical roles + terms). If `.size` exists, read it to size the PRD's depth; **if absent, establish it now** — classify the feature via the 4 signals in [`../_shared/size-matrix.md`](../_shared/size-matrix.md) (PR count / time-to-merge / new module·API·migration / breaking changes), confirm in one bundled `AskUserQuestion` (at `easy` depth, take the matrix default and record it in the assumptions ledger), and write `docs/features/<slug>/.size` — so every later stage reads a real size instead of silently defaulting to M. `classify-size` stays the utility to re-classify when scope changes. If `docs/architecture-map.md` exists (from `map-architecture`), read it so the PRD is **architecture-aware** — it informs §1 Context, §2 Constraints, and §3 Non-goals (what the existing system already does / can't do). Absent → suggest running `/sdlc:map-architecture` first, but proceed (the PRD is product-level and can be captured without it). **Do not leak the map's tech into §5 AC** — AC stay business-observable; the map shapes constraints, not acceptance criteria. **Then set the interview depth (the opening question):** **if `.claude/sdlc.local.md` is absent, auto-create it** with the documented default frontmatter (every key + its allowed values explained inline) and patch `.gitignore`; then read `interview_depth` from it (else default medium), and — unless a `--depth=easy|medium|hard` arg was passed (which skips the question) — ask ONE depth-selection `AskUserQuestion` phrased per [`../_shared/ask-style.md`](../_shared/ask-style.md), with the saved/medium value as the «(Recommended)» first option, overridable per run. The chosen level governs the step-2 deep-dive volume and the step-7 Socratic volume → [`../_shared/interview-depth.md`](../_shared/interview-depth.md). (Completeness — §5's 5-type AC floor **and** §4→§5 use-case floor — is unaffected by depth.)
+Any word the PRD needs that the glossary lacks (a state name, a role) gets a line in `CONTEXT.md` now, through
+`/sdlc:fix-term <word> for <slug>` if the plugin is loaded, else by asking the definition and its NOT
+directly. State names in §9 must be glossary terms.
 
-2. **Capture the idea (interview front).** One `AskUserQuestion` for the raw idea in 1–3 sentences (persist verbatim as the baseline). Then a Socratic deep-dive across problem clarity / success criteria / constraints / strategic fit, delivered in batches of 2–3 — its volume scales with the depth dial (easy: only the few un-inferable ones, then a stated-assumptions ledger; medium: 3–5; hard: walk every angle, foreground each trade-off). Phrase every question per [`../_shared/ask-style.md`](../_shared/ask-style.md).
+### 3. Draft
 
-3. **Reconcile the glossary in-flow (a hard rule, at every depth).** On every new or unknown domain term that surfaces in the interview or the draft, invoke `/sdlc:fix-term <slug>` for it **immediately** — compare it against `CONTEXT.md` and add/update the definition before continuing. By the time the PRD is written, every §4 role and §5 domain term is already glossary-canonical; the glossary is never a deferred batch.
+Fill `templates/PRD-template.md` in memory. Sources: §1–§3 and §7 from the brief, roles from the glossary,
+§9 states from the glossary, refusal kinds from the reference context. Every brief edge case either becomes
+an AC or a Non-goal with its reason.
 
-4. **Ask which extra channels to read** (multi-select `AskUserQuestion`): reference module code / project docs / MCP-Atlassian (Confluence) / MCP-Atlassian (Jira) / knowledge-base / none. For each picked channel ask the **specific** path/query — no silent broad scans. If `--reference` was passed, pre-select `Reference module code`.
+### 4. Walk the sections
 
-5. **Read selected channels.** Reference module → extract entity types, error sentinels, status constants, authz checks. MCP-Atlassian → `mcp__atlassian__search` for specified pages/tickets. Docs / RAG → only the paths/topics the user named.
+Order: §4 stories, §5 AC, §9 states, §10 rules and refusals, §6 NFR, §7 KPI. For each section, show the
+whole section first, then one question per item with these options:
 
-6. **Read the template + draft §1–§8.** Read [`./templates/PRD-template.md`](./templates/PRD-template.md) (its `<!-- Skill instruction: ... -->` comments are the per-section contract). Draft per [`./references/draft-generation.md`](./references/draft-generation.md): per-section sources, the **5 AC coverage types** (happy / error / authorization / domain invariant / cross-context), and the **stack-agnostic forbidden-token** rule for acceptance criteria. Ensure **every §4 user story has ≥1 AC in §5 at draft time** (the use-case floor applies before the Socratic walk begins).
+- **Approve**: kept as is.
+- **Edit**: the owner gives the new wording; redraft and ask once more, the second answer is final. When an
+  edit narrows a story or an AC, write what was cut as a line in §3 Non-goals with the owner's reason, and say
+  so in the next question.
+- **Add edge case** (AC only): the owner names a situation; draft it as its own AC with a `b` suffix on the
+  same story and ask once.
+- **Open question**: the item moves to §11 with owner and due; no owner or due means Drop.
+- **Drop**: removed. Dropping a whole story is fine; dropping the last AC of a kept story is not, draft a
+  replacement.
 
-7. **Socratic validation.** Walk §4 US → §5 AC → §6 NFR → §7 KPI with the shared 4-state machine (per-decision question volume scales with the depth dial — at easy, the un-asked decisions land in the assumptions ledger for a batch veto). write-prd delta → [`./references/socratic-loop.md`](./references/socratic-loop.md): AC has a 5th option «Add another AC»; the §5 coverage gate enforces **two floors** after drops/OQ-migrations — (a) ≥1 AC of each of the 5 coverage types, and (b) **≥1 AC per retained §4 user story** (regenerate/add a replacement if a type *or* a user story is left empty). **Both are floors, not dials — enforced at every depth;** only the question volume scales. The (b) floor closes the §4→§5 link so the downstream `complete-sequence-diagrams` use-case coverage + `review-feature` trace can't be undermined by a user story that lost its only AC. Maintain the edits-log.
+Keep an edits log (item, action, before, after, reason). The critic reads it.
 
-8. **Critic + write + commit.** Dispatch the [`critic`](../../agents/critic.md) agent — `subagent_type: "sdlc:critic"` (carries `model: opus` + `effort: high`, clean-isolated context per [`../_shared/agent-roster.md`](../_shared/agent-roster.md)) — with the write-prd delta in [`./references/critic.md`](./references/critic.md) (over [`../_shared/critic.md`](../_shared/critic.md)) — inline the draft + edits-log, it Reads `CONTEXT.md` + `idea-brief.md`. Resolve findings via `AskUserQuestion` (Accept revert / Accept amendment / Override-with-rationale → §1 ¶4 bullet). Run the forbidden-token regex scan as the F6 backstop. On pass, write `docs/features/<slug>/PRD.md` (glossary already reconciled in-flow per step 3) and propose commit `03: PRD for <slug>`. **Register on the roadmap:** add/promote this feature to **Now** in `docs/roadmap.md` (via `/sdlc:roadmap`) — an outcome one-liner + a link to this feature folder + status; if it existed as a Next candidate, move it up. (If there's no roadmap yet, skip — it's optional.) Then **emit the stage-handoff block** per [`../_shared/handoff.md`](../_shared/handoff.md) — *What I did* + *Review* (`PRD.md`, `.size`) + *Run next* (`/clear`, then `/sdlc:clarify-prd <slug>`). (If `sdlc:critic` is unavailable, fall back to a `general-purpose` Agent with the same delta.)
+### 5. Gates
 
-## Definition of Done
+Check after the walk; fix by drafting and asking again:
 
-- `docs/features/<slug>/PRD.md` written; all sections filled (or `<!-- N/A: reason -->`).
-- `docs/features/<slug>/.size` exists after this stage (read if it was present, else classified + written here).
-- §5 holds ≥1 AC of each of the 5 coverage types after drops/OQ-migrations, **every §4 user story has ≥1 AC** (the use-case floor — no retained US left with zero ACs), and **0 forbidden tokens** (HTTP verbs / URL paths / status-code numerics / `module.error_name` strings / JSON fragments / SQL constructs).
-- §4 roles match the `CONTEXT.md` glossary exactly (no invented `user`/`admin`).
-- §8 Open Questions each carry owner + due (no lone «TBD»).
-- Edits-log maintained; critic (`sdlc:critic`) ran on the post-Socratic draft; every finding resolved or overridden.
+- every story has an AC; every AC names its story
+- each of the six AC types is present: happy, error, authorization, invariant, cross-context, timing.
+  Timing is any rule where the clock or two players acting at once decides the outcome; if the feature has
+  neither, write `<!-- N/A: reason -->` instead
+- every §9 transition and every final state is reached by at least one AC
+- every refusing AC (all types but happy) has a row in §10.2
+- §10.1 has a cell for every glossary role and every action in §4
+- the NFR table has the money and ownership rows whenever `bank` or `board` data changes hands
 
-## Anti-patterns
+### 6. Critic
 
-- **Skipping the interview front** and reconstructing the idea from the model's guess. Capture + deep-dive must actually fire `AskUserQuestion`.
-- **Naming concrete technologies in §1–§3** (a specific datastore, broker, framework, or library). The PRD is WHAT + WHY; technology choices belong to `architecture-design`.
-- **Implementation leak in AC** — HTTP/status/error-code/SQL detail. That mapping lives in `api-forge` and `decide-adr`.
-- **Dispatching `general-purpose` instead of `sdlc:critic`** without first checking availability. The namespaced critic carries the correct model/effort and clean context; fall back only on confirmed unavailability.
-- **Treating brainstorm or initiatives artifacts as PRD inputs.** PRD draws only from CONTEXT + idea-brief (required) plus user-selected additional channels.
-- **Inventing role names or domain terms** not in CONTEXT glossary. The glossary is canonical; the PRD never introduces new role names.
+One sub-agent with a clean context: `sdlc:critic` if the plugin is loaded, else `general-purpose`. Prompt from
+`references/critic.md` with the draft and the edits log pasted in; it reads the glossary and the brief
+itself. Ask the owner about each finding: take the fix, give other wording, or keep the draft with a reason.
+A kept draft adds a line under §1 "Decisions kept against the critic".
 
-## References & template
+### 7. Write and check
 
-- [`../_shared/interview-depth.md`](../_shared/interview-depth.md) — the easy/medium/hard dial set in step 1 (question volume, autonomy).
-- [`./references/draft-generation.md`](./references/draft-generation.md) — per-section sources, 5 AC coverage types, stack-agnostic forbidden tokens.
-- [`./references/socratic-loop.md`](./references/socratic-loop.md) — write-prd's delta over the shared Socratic loop (sections walked, use-case floor, decision-types).
-- [`./references/critic.md`](./references/critic.md) — write-prd's delta over the shared critic (F5 structural floor + F6 forbidden-token specialization).
-- [`./references/ask-examples.md`](./references/ask-examples.md) — explanatory `AskUserQuestion` shape for US / AC / NFR / KPI + critic-finding examples (junior-friendly Ukrainian).
-- [`./references/checklist.md`](./references/checklist.md) — Definition of Done + full anti-patterns.
-- [`./templates/PRD-template.md`](./templates/PRD-template.md) — output scaffold; inline `<!-- Skill instruction: ... -->` comments are the per-section generation contract.
+Write `docs/features/<slug>/game-prd.md` with `status: Draft`. The owner sets `Approved` by hand after
+reading it; never set it yourself. Then:
+
+- §5 has no implementation tokens. Over §5 only:
+  `grep -nE '\b(GET|POST|PUT|PATCH|DELETE)\b|(^|\s)/[a-z]|\b(200|201|204|400|401|403|404|409|500)\b|[a-z_]+\.[a-z_]+|\{'`.
+  Error codes and kinds live in §10.2, nowhere else.
+- no storage, framework or library names in §1–§8 (`grep -iE 'sqlite|fastify|vitest'`)
+- §11 rows all carry owner and due
+
+Suggest the commit `02: PRD for <slug> via game-prd` and the next step `/sdlc:clarify-prd <slug>`, noting that
+it reads `PRD.md`.
+
+## Conventions this skill hands over
+
+**Refusal kinds** are the three in `src/shared/errors.ts` and nothing else:
+
+| Kind | Status | Use when |
+|---|---|---|
+| `invalid` | 400 | the request makes no sense on its own: bad amount, a deed named twice, unknown player |
+| `not_found` | 404 | the thing is gone, or the actor may not know it exists (hide-existence) |
+| `conflict` | 409 | the request was fine but the state moved on: deed changed owner, offer already answered, lifetime ran out |
+
+**Error codes** are `<ctx>.<error_name>`, snake_case, `<ctx>` the context that owns the rule (`trades`,
+`board`, `bank`, `lobby`, `turns`): `trades.offer_expired`, `bank.insufficient_funds`. Today's routes send
+the bare kind as `code`; the dotted name is what new routes send, and §10.2 is where it is decided.
+
+**Deny or hide.** An actor who is part of the thing (proposer, recipient) gets a refusal that says why. An
+actor who is not gets `not_found`, as if the thing did not exist.
+
+**NFR defaults** for this stack, used unless the owner sets others. Measured on 2026-11-17 on the board routes
+through `makeTestApp()` (in process, in-memory db, 300 calls): p95 0.10 ms create, 0.22 ms change owner,
+0.91 ms list of 300. The targets leave room for a slower machine and more rules, nothing more.
+
+| Aspect | Default target | Measurement |
+|---|---|---|
+| p95 of one write action | ≤ 5 ms | timed `app.inject` calls in the feature's test file, 300 calls |
+| p95 of one list action, 300 rows | ≤ 10 ms | same |
+| money in a room | unchanged by any exchange | sum of balances before and after, asserted in every exchange test |
+| title deed owners | exactly one per deed after every action | asserted in every exchange test |
+| two players acting on the same thing at once | exactly one wins, 100 of 100 runs | repeated test |
+| availability | N/A until there is a deployment | |

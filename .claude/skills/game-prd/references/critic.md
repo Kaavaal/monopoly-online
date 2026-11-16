@@ -1,72 +1,51 @@
-# write-prd — delta over the shared critic
+# Critic prompt for game-prd
 
-Read [`../../_shared/critic.md`](../../_shared/critic.md) for the canonical dispatch and F1–F6 skeleton. write-prd supplies only the deltas below; the skill fills the placeholders and dispatches one clean-context `Agent` via `subagent_type: "sdlc:critic"`.
+Paste everything below the line as the sub-agent prompt, with the draft and the edits log filled in. Do not
+paste the glossary or the brief: the critic reads them itself, so it judges the files and not a retelling.
 
-## Placeholders
+---
 
-- **`{{ARTIFACT_NAME}}`** = "Product Requirements Document (PRD) — context / goals / user stories / acceptance criteria / NFRs / KPIs".
-- **`{{DRAFT}}`** = the in-memory `PRD.md` draft (full text, post-Socratic).
-- **`{{EDITS_LOG}}`** = the step-7 edits-log (every `edit | drop | add | save_as_oq` entry; `Approve` absent — it is the baseline).
-- **`{{UPSTREAM_FILES}}`** (the critic Reads these itself):
-  - `docs/features/<slug>/CONTEXT.md` — canonical glossary (roles, domain terms).
-  - `docs/features/<slug>/idea-brief.md` — §2 Problem, §3 Users, §6 Out of scope, §11 RICE, §13 Recommendation.
-  - Any reference module / doc paths the user named in step 4 (paths only, not bodies).
+You review a PRD draft for a feature of an online Monopoly backend. You did not see the conversation that
+produced it. Read these files first, with Read only:
 
-## Dispatch
+- `docs/features/<slug>/CONTEXT.md`, the glossary
+- `docs/features/<slug>/<brief file>`, the confirmed brief
+- `src/shared/errors.ts`, the three refusal kinds
 
-Single `Agent` call, `subagent_type: "sdlc:critic"`, **clean context** — the critic did not see the Socratic conversation. If `sdlc:critic` is unavailable at runtime, fall back to `general-purpose` with the same prompt body.
-
-Inline into the prompt: the full post-Socratic in-memory PRD draft + the step-7 edits-log + the upstream file paths (not bodies). The critic re-reads the upstream files itself in clean context — no paraphrase poisoning.
-
-## F5 structural floor (this artifact)
-
-After applying all `drop`-s and `save_as_oq`-migrations:
-
-- §4 holds ≥1 US per glossary role + per §2 goal.
-- **Every retained §4 US has ≥1 AC in §5** (use-case floor — a retained US with no AC silently breaks downstream `complete-sequence-diagrams` use-case coverage and `review-feature` end-to-end trace). OQ-migrated AC do NOT count toward this floor.
-- §5 holds ≥1 AC of each of the 5 coverage types (happy / error / authorization / domain invariant / cross-context). OQ-migrated AC do NOT count.
-- §6 NFR rows all carry a numeric target + measurement (no adjectives, no lone TBD).
-- §8 Open Questions has a row for every `save_as_oq` with owner + due (no lone «TBD»).
-
-## F6 specialization — forbidden-token leak (the load-bearing check)
-
-This is write-prd's primary F6. Scan §5 AC text for the forbidden tokens in [`draft-generation.md`](./draft-generation.md) (HTTP verbs, URL paths, status numerics, `module.error_name` strings, JSON fragments, SQL/driver constructs). **List every hit**, one bullet per AC line:
+Draft:
 
 ```
-- **[F6] AC-NN contains forbidden tokens** — line: "<verbatim snippet>"; hits: <token1>, <token2>; suggested: rewrite into business form (actor-observable outcome) OR move the HTTP/error/schema detail to `api-forge` or `decide-adr`.
+{{DRAFT}}
 ```
 
-Also flag any concrete technology name (datastore / broker / framework / library) appearing in §1–§3 — those belong to `architecture-design`.
+Edits log (only edits, drops, added edge cases and open questions; approved items are not listed):
 
-## F1 specialization — approach drift
+```
+{{EDITS_LOG}}
+```
 
-If the edits-log dropped/edited a US or AC tied to the committed approach in §1 ¶3, check that §1 ¶3 still states that approach accurately (cites idea-brief §13 recommendation). A PRD whose body no longer matches its own «committed approach» paragraph is drift.
+Check, and report only what is wrong:
 
-## F3 specialization — defer vs idea-brief vector
+1. **Approach.** §1 states the approach the brief recommends, and no later section quietly adds what the
+   brief parked (for example a state or a permission that belongs to a parked approach).
+2. **Edits.** Every edit in the log appears in the draft as its `after` text. Every narrowing edit has its
+   line in §3. A drop or open question that removes something the brief called a main risk is a finding.
+3. **States.** Every §9 state is a glossary term. Every transition has an AC, every AC that changes an
+   offer's or a turn's state has a transition, and nothing leaves a final state.
+4. **Refusals.** Every AC that refuses has a §10.2 row; its kind matches `errors.ts` (`invalid` for a
+   request wrong on its own, `conflict` for state that moved on, `not_found` for gone or hidden). A hidden
+   cell in §10.1 must be `not_found`, never a refusal that says why.
+5. **Permissions.** §10.1 covers every action in §4 and every glossary role, and agrees with the
+   authorization ACs.
+6. **Money and deeds.** If title deeds or money change hands, §5 and §6 both promise that money in the
+   room is unchanged and that every deed has one owner, and some AC covers two players acting at once.
+7. **Leaks.** §5 has no HTTP verbs, paths, status numbers, error codes or payloads; §1–§8 name no storage,
+   framework or library.
 
-For every `drop` / `save_as_oq` in the edits-log, check whether idea-brief §6 (Out of scope), §13 (Recommendation), or §11 (RICE) named that item as a critical engagement / adoption / risk driver. **Differentiate**: «dropped» (hard removal) vs «deferred to Open Questions» (softer — still alive in §8 with owner+due, recoverable if the OQ resolves before downstream stages).
+Rules: cite the draft line and the file line for every finding, or drop it. At most 7 findings, worst first.
+Do not suggest new features. If a file cannot be read, answer `CRITIC_BLOCKED: <file>`. If nothing is wrong,
+answer `NO_CONTESTED_DECISIONS`.
 
-## Resolution loop
+Format, one bullet each:
 
-For each finding, surface it via `AskUserQuestion`:
-
-- **`Accept revert / amendment as suggested`** — apply the critic's suggested edit verbatim.
-- **`Accept amendment (different wording)`** — user types alternative wording; skill applies that.
-- **`Override (rationale)`** — keep the draft as-is, user provides the rationale.
-
-Constraints:
-- ≤2 `AskUserQuestion` batches, max 4 questions per batch. The user's **second** answer per finding is final.
-- **`Override` resolutions emit a bullet** into the draft §1 Context ¶4: «<finding-headline> — overridden by author, rationale: <user-rationale>». This makes the deliberate choice visible to downstream skills.
-
-After resolution, re-run the Self-check inline non-negotiables (see SKILL.md `## Definition of Done`). If any still fail — re-open the relevant `AskUserQuestion` once, then proceed.
-
-## Pre-write regex backup for F6
-
-Independent of the critic, before writing the file run a regex scan over §5 AC text for forbidden tokens (HTTP verbs, paths starting with `/`, bare status codes `200|201|400|401|403|404|409|500|503|5xx`, `[a-z_]+\.[a-z_]+`, JSON fragments, SQL constructs). Any hit **not** already overridden in the critic resolution → re-open `AskUserQuestion` for that AC line. This is the safety net if the critic missed a token (e.g. truncated output).
-
-## Failure modes
-
-- **Critic timeout / error** → STOP, report to user. Never fall back to silent write.
-- **Critic returns `CRITIC_BLOCKED: <reason>`** (cannot Read upstream files) → STOP and report to user. Do not guess.
-- **Critic returns malformed output** (no bullets, no `NO_CONTESTED_DECISIONS`, no `CRITIC_BLOCKED`) → re-dispatch once with «Your previous output did not match the required format» appended; if still malformed → STOP and ask the user how to proceed.
-- **User picks `Override` for every finding** → allowed (PRD authorship is the user's call), but every override emits a §1 ¶4 bullet so the override trail is auditable.
+`- **[<check number>] <headline>**: draft <§/AC>; source <file §/line>; fix: <one concrete change>.`
