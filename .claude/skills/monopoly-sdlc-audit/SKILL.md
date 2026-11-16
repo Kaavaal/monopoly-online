@@ -2,7 +2,7 @@
 name: monopoly-sdlc-audit
 description: Read-only audit of one feature's SDLC artifacts in monopoly-online. Scans docs/features/<slug>/, says which of the 9 module-6 artifacts are present, missing or stale against the feature's code, and gives 3-5 recommendations. Use for "/monopoly-sdlc-audit <slug>", "audit the docs of <feature>", "what artifacts does <feature> lack".
 argument-hint: <slug> [context,...]
-allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git ls-files:*), Bash(git ls-tree:*), Bash(git worktree list:*), Bash(ls:*), Bash(test:*)
+allowed-tools: Read, Glob, Grep, Bash(git log:*), Bash(git show:*), Bash(git status:*), Bash(git ls-files:*), Bash(git ls-tree:*), Bash(git for-each-ref:*), Bash(git worktree list:*), Bash(ls:*), Bash(test:*)
 ---
 
 # monopoly-sdlc-audit
@@ -20,9 +20,12 @@ Inspects, never writes. The output is a status table and a short list of what to
 
 1. The working tree, if `docs/features/<slug>/` is there.
 2. Else another worktree: `git worktree list`, then look for the folder under each path. Read files there
-   directly, so uncommitted drafts count too; `git -C <path> status --short` marks them.
-3. Else a branch: `git log --all -1 --format='%h %D' -- docs/features/<slug>`, then
-   `git ls-tree -r --name-only <ref> docs/features/<slug>` and `git show <ref>:<path>`.
+   directly, so uncommitted drafts count too. A file missing from `git ls-tree -r --name-only <its branch>
+   docs/features/<slug>`, or different from `git show <its branch>:<path>`, is a draft.
+3. Else a branch: take the sha from `git log --all -1 --format=%h -- docs/features/<slug>`, then the branch
+   from `git for-each-ref --contains <sha> --format='%(refname:short)' refs/heads refs/remotes` (more than
+   one: prefer the unmerged one). Use that branch as `<ref>`, never the bare sha, or later code on it is
+   missed. Read with `git ls-tree -r --name-only <ref> docs/features/<slug>` and `git show <ref>:<path>`.
 
 Say in the header which worktree or ref you read. When the folder is on another branch, the code checks
 below run against that ref too.
