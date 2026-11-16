@@ -15,8 +15,24 @@ the dependency rule and the slice anatomy every feature follows.
 - Errors leave domain and app code as `notFound` / `conflict` / `invalid` from `src/shared/errors.ts`.
 - Every route declares a JSON schema for params, body and response.
 - Tests go through HTTP with `makeTestApp()` from `test/helpers/app.ts` (fresh in-memory db per call).
-- Commits: Conventional Commits with the context as scope, e.g. `feat(lobby): create player`.
 - pnpm only; add dependencies with `pnpm add -E` so versions stay exact.
+
+## Git
+
+GitHub Flow: `main` stays green, every change goes through a short branch and a pull request.
+
+- Branch off `main` per change, named `<type>/<short-name>` (`feat/trade-offers`, `fix/rent-rounding`). A branch
+  lives a day or two, not weeks.
+- Commits: Conventional Commits with the context as scope, e.g. `feat(lobby): create player`. Types `feat`,
+  `fix`, `refactor`, `test`, `docs`, `chore`; repo-wide changes go without a scope.
+- One commit, one logical change. A mixed working tree gets split into several commits (`git add -p`), and a
+  test goes in the commit of the code it covers.
+- Read `git diff --staged` before each commit.
+- Open a draft PR right after the first green commit, not at the end. Push and PR only after the person says
+  so.
+- Undo a commit with `git revert`. `git reset --hard` is denied in `.claude/settings.json`.
+- Secrets live in `.env` (git-ignored); only `.env.example` with dummy values is tracked.
+  `.claude/hooks/block-secrets.sh` blocks a `git add` or `git commit` that would take a `.env` file, `*.pem` or `*.key`.
 
 ## Done gate
 
