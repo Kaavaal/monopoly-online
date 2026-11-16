@@ -98,8 +98,9 @@ Write `docs/features/<slug>/game-prd.md` with `status: Draft`. The owner sets `A
 reading it; never set it yourself. Then:
 
 - §5 has no implementation tokens. Over §5 only:
-  `grep -nE '\b(GET|POST|PUT|PATCH|DELETE)\b|(^|\s)/[a-z]|\b(200|201|204|400|401|403|404|409|500)\b|[a-z_]+\.[a-z_]+|\{'`.
-  Error codes and kinds live in §10.2, nowhere else.
+  `grep -nE '\b(GET|POST|PUT|PATCH|DELETE)\b|(^|\s)/[a-z]|([Ss]tatus|HTTP|[Cc]ode)[^.]{0,12}\b[1-5][0-9]{2}\b|[a-z_]+\.[a-z_]+|\{'`.
+  A status number counts only next to "status", "HTTP" or "code", so money amounts like 500 stay as the
+  owner said them. Error codes and kinds live in §10.2, nowhere else.
 - no storage, framework or library names in §1–§8 (`grep -iE 'sqlite|fastify|vitest'`)
 - §11 rows all carry owner and due
 
