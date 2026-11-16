@@ -1,6 +1,6 @@
 ---
 status: Living
-updated_at: "2026-11-16"
+updated_at: "2026-11-17"
 ---
 
 # Domain Context — trade-offers

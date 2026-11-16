@@ -32,7 +32,6 @@ churn dashboards, no market share. Questions and scores are built for that.
 
 No depth checkpoint: a game feature is small enough for one route through the flow.
 
-
 Every question goes through `AskUserQuestion`, 2-3 per call. Ask in the language the person writes in.
 Each option says in plain words what will land in the brief and what it costs later. Never answer a question
 yourself: the brief is worth nothing if the owner's answers are invented.

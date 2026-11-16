@@ -1,5 +1,5 @@
 ---
-status: Draft | Confirmed
+status: Draft | Confirmed | Comparison
 owner: "<game owner>"
 updated_at: "<YYYY-MM-DD>"
 stage: "01"

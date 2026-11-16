@@ -11,7 +11,7 @@ feasibility: confirmed
 
 # Game brief: trade offers
 
-A comparison run of the game-brief skill. `idea-brief.md` stays the input for write-prd until the layout is settled at the end of the module.
+Comparison run; `idea-brief.md` stays the write-prd input.
 
 ## 1. Raw idea
 
@@ -186,15 +186,15 @@ no longer be honoured; C's dead offer with a reason fills that gap. Owner accept
 
 ## 15. Open questions
 
-- [ ] Which context owns trade offers? The engineer suggests a fifth one using `lobby`, `board`, `bank`. ·
+- [ ] Which context owns trade offers? The engineer suggests a new fifth one. ·
   Kaavaal, before architecture-design
 - [ ] In what order do rooms, accounts, per-room deeds land? · Kaavaal, before write-prd
 - [ ] How does the game know who is asking? · Kaavaal, before write-prd
 - [ ] Exact offer lifetime (game 4 in §6 uses 20 seconds). · Kaavaal, write-prd
 - [ ] What stops the one-coin dump: nothing, or a value check as in game 3 of §6? · Kaavaal, write-prd
-- [ ] May a player trade while owing a payment? · Kaavaal, with rent
+- [ ] Trading while owing a payment? · Kaavaal, with rent
 - [ ] Cap open offers per proposer? · Kaavaal, write-prd
-- [ ] What is a finished game? The metric needs it. · Kaavaal, before write-prd
+- [ ] What is a finished game (the metric's base)? · Kaavaal, before write-prd
 
 ## 16. Contexts touched
 
