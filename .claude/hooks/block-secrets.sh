@@ -11,31 +11,36 @@ block() {
   exit 2
 }
 
-# git before its subcommand, global options allowed: git -C dir add
-git_sub='\bgit([[:space:]]+-[cC][[:space:]]+[^[:space:]]+|[[:space:]]+--?[a-z-]+(=[^[:space:]]+)?)*[[:space:]]+'
+# quoted text with spaces is a message or a pattern, not a path: git commit -m "never git add .env"
+plain=$(sed -E "s/\"[^\"]*[[:space:]][^\"]*\"//g; s/'[^']*[[:space:]][^']*'//g" <<<"$cmd")
+# git with its global options, then the subcommand: git -C dir add
+git_pre='git([[:space:]]+-[cC][[:space:]]+[^[:space:]]+|[[:space:]]+--?[a-z-]+(=[^[:space:]]+)?)*[[:space:]]+'
+repo_of() { sed -nE 's/^git[[:space:]]+-C[[:space:]]+([^[:space:]]+).*/\1/p' <<<"$1"; }
 
-# git add / git stage parts of the command, up to the next ; & or |
-adds=$(grep -oE "${git_sub}(add|stage)\b[^;&|]*" <<<"$cmd")
-if [ -n "$adds" ]; then
+# each git add / git stage up to the next ; & or |
+while read -r seg; do
+  [ -z "$seg" ] && continue
+  repo=$(repo_of "$seg"); repo=${repo:-.}
+  args=$(sed -E "s/^${git_pre}(add|stage)//" <<<"$seg")
   # a secret named directly: git add .env, git add -f config/.env.local
-  hit=$(tr -s " \t'\"" '\n' <<<"$adds" | is_secret | head -1)
+  hit=$(tr -s " \t'\"" '\n' <<<"$args" | is_secret | head -1)
   [ -n "$hit" ] && block "$hit"
-  # what git would really stage, ignored files included when forced: git add -f .
-  while read -r seg; do
-    read -ra words <<<"$(sed -E "s/^${git_sub}(add|stage)//" <<<"$seg")"
-    if staged=$(git add --dry-run "${words[@]//[\'\"]/}" 2>/dev/null); then
-      hit=$(sed -E "s/^add '(.*)'$/\\1/" <<<"$staged" | is_secret | head -1)
-    elif grep -qE '(\s-[a-zA-Z]*f\b|--force)' <<<"$seg"; then
-      # a forced add the dry run can't read (cd elsewhere, git -C): assume the worst
-      hit=$(git ls-files --others --ignored --exclude-standard 2>/dev/null | is_secret | head -1)
-    fi
-    [ -n "$hit" ] && block "$hit"
-  done <<<"$adds"
-fi
+  # what git would really stage, ignored files too when forced: git add -f .
+  read -ra words <<<"$args"
+  if staged=$(git -C "$repo" add --dry-run "${words[@]//[\'\"]/}" 2>/dev/null); then
+    hit=$(sed -E "s/^add '(.*)'$/\1/" <<<"$staged" | is_secret | head -1)
+  elif grep -qE '(^|[[:space:]])(-[a-zA-Z]*f[a-zA-Z]*|--force)([[:space:]]|$)' <<<"$args"; then
+    # a forced add the dry run can't read (cd elsewhere first): assume the worst
+    hit=$(git -C "$repo" ls-files --others --ignored --exclude-standard 2>/dev/null | is_secret | head -1)
+  fi
+  [ -n "$hit" ] && block "$hit"
+done <<<"$(grep -oE "\\b${git_pre}(add|stage)\\b[^;&|]*" <<<"$plain")"
 
 # a secret staged earlier by hand, caught at commit time
-if grep -qE "${git_sub}commit\b" <<<"$cmd"; then
-  hit=$(git diff --cached --name-only 2>/dev/null | is_secret | head -1)
+while read -r seg; do
+  [ -z "$seg" ] && continue
+  repo=$(repo_of "$seg")
+  hit=$(git -C "${repo:-.}" diff --cached --name-only 2>/dev/null | is_secret | head -1)
   [ -n "$hit" ] && block "$hit"
-fi
+done <<<"$(grep -oE "\\b${git_pre}commit\\b[^;&|]*" <<<"$plain")"
 exit 0
