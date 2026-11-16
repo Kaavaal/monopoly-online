@@ -11,15 +11,18 @@ block() {
   exit 2
 }
 
-# git add parts of the command, up to the next ; & or |
-adds=$(grep -oE '\bgit\b[^;&|]*\badd\b[^;&|]*' <<<"$cmd")
+# git before its subcommand, global options allowed: git -C dir add
+git_sub='\bgit([[:space:]]+-[cC][[:space:]]+[^[:space:]]+|[[:space:]]+--?[a-z-]+(=[^[:space:]]+)?)*[[:space:]]+'
+
+# git add / git stage parts of the command, up to the next ; & or |
+adds=$(grep -oE "${git_sub}(add|stage)\b[^;&|]*" <<<"$cmd")
 if [ -n "$adds" ]; then
   # a secret named directly: git add .env, git add -f config/.env.local
   hit=$(tr -s " \t'\"" '\n' <<<"$adds" | is_secret | head -1)
   [ -n "$hit" ] && block "$hit"
   # what git would really stage, ignored files included when forced: git add -f .
   while read -r seg; do
-    read -ra words <<<"${seg#*add}"
+    read -ra words <<<"$(sed -E "s/^${git_sub}(add|stage)//" <<<"$seg")"
     if staged=$(git add --dry-run "${words[@]//[\'\"]/}" 2>/dev/null); then
       hit=$(sed -E "s/^add '(.*)'$/\\1/" <<<"$staged" | is_secret | head -1)
     elif grep -qE '(\s-[a-zA-Z]*f\b|--force)' <<<"$seg"; then
@@ -31,7 +34,7 @@ if [ -n "$adds" ]; then
 fi
 
 # a secret staged earlier by hand, caught at commit time
-if grep -qE '\bgit\b[^;&|]*\bcommit\b' <<<"$cmd"; then
+if grep -qE "${git_sub}commit\b" <<<"$cmd"; then
   hit=$(git diff --cached --name-only 2>/dev/null | is_secret | head -1)
   [ -n "$hit" ] && block "$hit"
 fi
