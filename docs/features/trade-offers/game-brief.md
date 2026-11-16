@@ -1,5 +1,5 @@
 ---
-status: Confirmed
+status: Comparison
 owner: "Kaavaal"
 updated_at: "2026-11-16"
 stage: "01"
@@ -10,6 +10,8 @@ feasibility: confirmed
 ---
 
 # Game brief: trade offers
+
+A comparison run of the game-brief skill. `idea-brief.md` stays the input for write-prd until the layout is settled at the end of the module.
 
 ## 1. Raw idea
 

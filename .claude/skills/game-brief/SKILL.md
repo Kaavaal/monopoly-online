@@ -20,7 +20,8 @@ churn dashboards, no market share. Questions and scores are built for that.
 
 ## Before you start
 
-1. Read `CLAUDE.md`, `ARCHITECTURE.md` (context map) and `LOG.md` (measured feature times).
+1. Read `CLAUDE.md`, `ARCHITECTURE.md` (context map, slice anatomy), `LOG.md` and `CAPSTONE_LOG.md` (measured
+   feature times).
 2. Read `docs/features/<slug>/CONTEXT.md` if it exists and keep its glossary. A new domain word in an answer
    gets fixed on the spot with `/sdlc:fix-term <word> for <slug>` before you go on, or listed in §15 if the
    plugin is not loaded.
@@ -28,6 +29,9 @@ churn dashboards, no market share. Questions and scores are built for that.
 4. Copy nothing yet. All writing happens in step 10.
 
 ## Asking
+
+No depth checkpoint: a game feature is small enough for one route through the flow.
+
 
 Every question goes through `AskUserQuestion`, 2-3 per call. Ask in the language the person writes in.
 Each option says in plain words what will land in the brief and what it costs later. Never answer a question
@@ -41,8 +45,8 @@ One question: "the idea in 1-3 sentences, your words". Keep it verbatim for §1.
 
 ### 2. Table questions
 
-Pick 4-6 from these, in two batches. They replace the generic product questions because a board game feature
-fails in its own ways.
+Ask these six in two batches; skip one only when the answers so far already cover it. They replace the
+generic product questions because a board game feature fails in its own ways.
 
 - **At the table.** What do people do at a real table today? Is it an official rule, a house rule, or
   something only an app can do?
@@ -75,8 +79,8 @@ target, the main trade-off, effort S/M/L.
 
 Three sub-agents in one message, each sees all three approaches:
 
-- **Engineer.** Which contexts each approach touches and how many new slices that is (a slice is the unit in
-  ARCHITECTURE.md: entity, service, routes, migration, tests). Name cross-context calls that do not exist yet.
+- **Engineer.** Which contexts each approach touches and how many new slices that is (a slice as in "Slice anatomy" in
+  ARCHITECTURE.md). Name cross-context calls that do not exist yet.
   No libraries or storage names.
 - **Game designer.** Balance, exploits, kingmaking, effect on game length.
 - **Player.** What it feels like on a phone, how much waiting, what is confusing the first time.
@@ -104,8 +108,8 @@ Propose, then ask the owner to confirm or adjust each number in one `AskUserQues
 - **Impact**: 0.5 / 1 / 2 / 3, from the game-length answer and the game designer's review.
 - **Confidence**: 0.5 to 1.0, lower for every open question in §15.
 - **Effort**: in days, not person-weeks. Count the slices from the engineer's review and price each one from
-  `LOG.md` (a single-entity CRUD slice took minutes with an agent; cross-context work and rules logic take
-  longer, so say how you scaled it).
+  `LOG.md` and `CAPSTONE_LOG.md` (a single-entity CRUD slice took minutes with an agent; cross-context work
+  and rules logic take longer, so say how you scaled it).
 
 Then feasibility, also confirmed by the owner: **contexts ready** (do the contexts it needs have code, see
 `src/<ctx>/`), **rules clear** (is the table rule settled or still argued), **time** (fits the owner's next
@@ -124,7 +128,7 @@ approaches go to §14 with the trigger that would bring them back.
 ### 11. Self-check
 
 - all sections filled, `<!-- TBD -->` only where the owner said "don't know"
-- no storage, library or endpoint names in the body (grep for `SQLite|sqlite|Fastify|SQL|POST |GET |/api`)
+- no storage, library or endpoint names in the body (grep -iE `sqlite|fastify|\bSQL\b|\b(GET|POST|PATCH|DELETE) /`)
 - under 2000 words
 - §13 cites §6, §8, §11, §12
 - every `AskUserQuestion` above was really asked
