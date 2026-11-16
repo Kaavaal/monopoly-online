@@ -18,7 +18,8 @@ pnpm dev          # http://localhost:8080/health
 `DB_PATH` and `PORT` override the defaults (`monopoly.db`, `8080`). `pnpm dev` and `pnpm start` apply pending
 migrations on boot as well.
 
-`pnpm dev`, `pnpm start` and `pnpm migrate` also read `PORT` and `DB_PATH` from `.env` when it exists (`cp .env.example .env`).
+`pnpm dev` and `pnpm start` also read `PORT` and `DB_PATH` from `.env` when it exists (`cp .env.example .env`), `pnpm migrate`
+reads `DB_PATH` from it.
 
 ## Scripts
 
