@@ -2,3 +2,5 @@ node_modules
 .pnpm-store
 *.db
 coverage
+.claude/*.local.md
+.worktrees/
