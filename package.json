@@ -11,8 +11,8 @@
   },
   "packageManager": "pnpm@11.0.9",
   "scripts": {
-    "dev": "tsx watch src/index.ts",
-    "start": "tsx src/index.ts",
+    "dev": "tsx watch --env-file-if-exists=.env src/index.ts",
+    "start": "tsx --env-file-if-exists=.env src/index.ts",
     "migrate": "tsx scripts/migrate.ts",
     "release:notes": "node scripts/release-notes.mjs",
     "typecheck": "tsc --noEmit",
