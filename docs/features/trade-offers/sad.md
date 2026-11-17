@@ -181,6 +181,7 @@ part of this one. The shapes are indicative; the contract stage fixes them.
 |---|---|---|
 | `lobby` | the player a player secret belongs to (ADR-0003) | every route |
 | `lobby` | whether a player exists; whether two players are in the same room | AC-02, AC-05, AC-18 |
+| `lobby` | a player is in at most one room at a time, a rule the rooms feature enforces (ADR-0004) | AC-04, AC-13, AC-15 |
 | `board` | whether a title deed exists, its owner and its room | AC-02, AC-06 |
 | `board` | guarded command: move title deeds between two players, refusing when a giver is not the owner | AC-07, AC-16, AC-19 |
 | `bank` | the balance of a player | AC-06 |
@@ -513,6 +514,7 @@ Trade offers follow the conventions of the repo. Only the rows marked "new" add 
 | [0001](./adr/0001-own-trade-offers-in-a-new-trades-context.md) | Own trade offers in a new `trades` context | Accepted | §4 |
 | [0002](./adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md) | Run the exchange in one SQLite transaction around guarded commands of `board` and `bank` | Accepted | §4 |
 | [0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md) | Identify the acting player by a player secret that `lobby` issues | Accepted | §4 |
+| [0004](./adr/0004-one-room-per-player.md) | Keep a player in at most one room at a time | Accepted | §5 |
 
 ADR files live under `docs/features/trade-offers/adr/`. Decisions kept inline because they did not cross the
 blast-radius gate: expiry derived from the clock (§4, choice 4) and no new error kind from this feature (§8).
