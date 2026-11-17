@@ -385,9 +385,19 @@ Decided inline, below the gate:
 
 ## 12. Glossary
 
-<!-- Terms from CONTEXT.md this document uses, in its words. A new term goes here marked "not in CONTEXT"
-and to the handoff for /sdlc:fix-term. -->
-
 | Term | Meaning |
 |---|---|
-| <term> | <from CONTEXT.md> |
+| trade offer | a proposal from one player to another in the same room to give their own title deeds and/or money for the other's; accepted or rejected as a whole, expires if left unanswered |
+| proposer | the player who creates a trade offer and names what they give and what they ask for |
+| recipient | the one player a trade offer is addressed to, and the only one who can accept or reject it |
+| pending offer | a trade offer the recipient has not answered and whose lifetime has not run out; the only kind that can be accepted or rejected |
+| accepted offer | a trade offer the recipient accepted and whose exchange took place in full |
+| rejected offer | a trade offer the recipient explicitly refused |
+| expired offer | a trade offer the recipient did not answer within its lifetime |
+| offer lifetime | the fixed time a trade offer stays pending after it is created: 5 minutes |
+| room | the group of players who play one game together on one board |
+| color group | the fixed set of title deeds of one color |
+| acting player (not in CONTEXT) | the player a request is made by, as resolved by `lobby` from the secret the request carries |
+| secret (not in CONTEXT) | a value `lobby` issues to one player; whoever sends it acts as that player |
+| exchange (not in CONTEXT) | the change of hands of every title deed and all money named in one trade offer, done in full or not at all |
+| guarded write (not in CONTEXT) | a write call of `board` or `bank` that checks its own rule and refuses when it does not hold |
