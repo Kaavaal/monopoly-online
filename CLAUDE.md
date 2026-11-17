@@ -16,7 +16,10 @@ the dependency rule and the slice anatomy every feature follows.
   `CHECK`s of `0001` and `0003` stay. Full rules: `.claude/rules/migrations.md`.
 - Errors leave domain and app code as `notFound` / `conflict` / `invalid` from `src/shared/errors.ts`.
 - Every route declares a JSON schema for params, body and response.
-- Tests go through HTTP with `makeTestApp()` from `test/helpers/app.ts` (fresh in-memory db per call).
+- Test through the outermost interface a caller of the code really uses, because that is where wiring,
+  schemas and error mapping break. For a context feature that interface is HTTP: use `makeTestApp()` from
+  `test/helpers/app.ts` (fresh in-memory db per call). Code with no route (`src/shared/`, `scripts/`, a
+  future socket or job) is tested through its own entry point, still against a fresh db.
 - Commits: Conventional Commits with the context as scope, e.g. `feat(lobby): create player`.
 - pnpm only; add dependencies with `pnpm add -E` so versions stay exact.
 

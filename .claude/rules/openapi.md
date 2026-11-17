@@ -1,3 +1,13 @@
+---
+paths:
+  - "docs/features/**/contracts/**"
+  - "docs/features/**/game-contracts/**"
+  - "test/contracts/**"
+  - "src/*/infra/http/**"
+  - "src/shared/http.ts"
+  - "src/shared/errors.ts"
+---
+
 # API contract rules
 
 <!-- Bootstrapped by /sdlc:api-forge on 2026-11-17 from its baseline, then changed where this repo already
