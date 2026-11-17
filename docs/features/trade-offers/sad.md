@@ -316,29 +316,45 @@ blast-radius gate: expiry derived from the clock (§4, choice 4) and no new erro
 
 ## 10. Quality requirements
 
-<!-- 🎯 Навіщо: ДЕРЕВО ЯКОСТЕЙ (Quality Tree) — беремо мету з §1 і розкладаємо на          -->
-<!--           конкретні листя: тести, метрики, конфіги, drill-и. ⭐ Без §10 §1 — це       -->
-<!--           маніфест. З §10 кожна декларація мапиться на щось, ЩО МОЖНА ДОВЕСТИ.        -->
-<!-- 📋 Що писати: на кожну якість з §1 — When / Then / How verify. Числа з PRD §6 NFR     -->
-<!--           ДОСЛІВНО (не округлюй p95 ≤250мс до ≤300мс — це F6-помилка критика).        -->
-<!-- 📌 Приклад: «p95 ≤500 мс на UPDATE блоку, перевіримо k6 load test 100 req/s».        -->
+Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. All scenarios are checked in
+`test/trades/offer.test.ts` through HTTP with `makeTestApp()`.
 
-Each top-3 goal from §1 expanded into a full scenario:
+**QG-1. Exchange atomicity**
+- **When:** a recipient accepts a pending offer, whether the exchange goes through or fails midway.
+- **Then:** "0 partial exchanges: after every acceptance attempt the total money in the room is unchanged and
+  every title deed has exactly one owner" (PRD §6).
+- **How verify:** an invariant check after each acceptance in the automated tests: the sum of the balances of
+  the players of the room before and after, and the owner of every title deed named in the offer. It includes
+  a run in which the exchange is made to fail midway: an offer whose title deed leg holds and whose money leg
+  the payer cannot cover. The test asserts that the title deed kept its owner and the offer is still a pending
+  offer.
 
-**QG-1. <quality attribute>**
-- **When:** <trigger condition>
-- **Then:** <expected behavior with numbers from PRD NFR>
-- **How verify:** <test / chaos drill / load test / observability>
+**QG-2. Concurrency correctness**
+- **When:** two pending offers give away the same title deed and both recipients accept at the same moment.
+- **Then:** "of 2 acceptances competing for one title deed, exactly 1 goes through, in 100 of 100 repetitions"
+  (PRD §6); the other is refused as in AC-16, and the invariants of QG-1 hold.
+- **How verify:** a repeated automated test, 100 repetitions, each on a fresh app: the two acceptance requests
+  are sent together and the test expects one success, one `conflict` and the QG-1 invariants. Under ADR-0002
+  two requests in one process cannot interleave, so this test guards the design (it fails if an `await` is
+  ever put inside the transaction) and does not search for a race.
 
-**QG-2. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-3. Expiry accuracy**
+- **When:** a recipient accepts or rejects an offer whose offer lifetime of five minutes has run out, including
+  an answer sent in the last moment that arrives after it.
+- **Then:** "0 answers accepted after the five-minute lifetime has run out" (PRD §6): the answer is refused,
+  the offer is an expired offer and nothing changes hands (AC-12).
+- **How verify:** an automated test with a controlled clock handed to the app: an answer one millisecond before
+  `expires_at` is taken; an answer at `expires_at` and one millisecond after it is refused with `conflict`,
+  and the QG-1 invariants hold.
 
-**QG-3. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+**QG-4. Latency** (not a top-3 goal)
+- **When:** a player makes or answers an offer, or lists their offers.
+- **Then:** "p95 ≤ 250 ms" for making or answering an offer and "p95 ≤ 150 ms" for listing a player's offers
+  (PRD §6).
+- **How verify:** the "server-side duration of the propose, accept and reject actions" and of "the two list
+  actions", "sampled in the automated test run" (PRD §6). The PRD gives no sample size; the test plan sets it.
+
+Availability: N/A. The product has no production deployment and no SLO window yet (PRD §6).
 
 ## 11. Risks and technical debt
 
