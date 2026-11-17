@@ -9,12 +9,15 @@ export function openDb(path = ':memory:'): Db {
   return db;
 }
 
+/** A body's result; an async body resolves to `never`, so it does not compile. */
+type SyncResult<T> = T extends PromiseLike<unknown> ? never : T;
+
 /**
  * Runs `body` in one transaction: commits when it returns, rolls back and rethrows when it throws.
  * Called inside an open transaction, it joins it, so the outermost call decides the outcome.
  * The body is synchronous: an awaited write would land after the commit.
  */
-export function inTransaction<T>(db: Db, body: () => T extends PromiseLike<unknown> ? never : T): T {
+export function inTransaction<T>(db: Db, body: () => SyncResult<T>): T {
   if (db.isTransaction) {
     return body();
   }

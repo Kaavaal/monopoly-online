@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { inTransaction, openDb } from '../../src/shared/db.js';
+import type { Db } from '../../src/shared/db.js';
 
 function makeDb() {
   const db = openDb();
@@ -8,7 +9,11 @@ function makeDb() {
   return db;
 }
 
-function notes(db: ReturnType<typeof openDb>) {
+function addNote(db: Db, text: string) {
+  db.prepare('INSERT INTO notes (text) VALUES (?)').run(text);
+}
+
+function notes(db: Db) {
   return db
     .prepare('SELECT text FROM notes ORDER BY rowid')
     .all()
@@ -20,7 +25,7 @@ describe('inTransaction', () => {
     const db = makeDb();
 
     const result = inTransaction(db, () => {
-      db.prepare('INSERT INTO notes (text) VALUES (?)').run('kept');
+      addNote(db, 'kept');
       return 42;
     });
 
@@ -35,7 +40,7 @@ describe('inTransaction', () => {
 
     expect(() =>
       inTransaction(db, () => {
-        db.prepare('INSERT INTO notes (text) VALUES (?)').run('lost');
+        addNote(db, 'lost');
         throw boom;
       }),
     ).toThrow(boom);
@@ -48,9 +53,9 @@ describe('inTransaction', () => {
     const db = makeDb();
 
     inTransaction(db, () => {
-      db.prepare('INSERT INTO notes (text) VALUES (?)').run('outer');
+      addNote(db, 'outer');
       inTransaction(db, () => {
-        db.prepare('INSERT INTO notes (text) VALUES (?)').run('inner');
+        addNote(db, 'inner');
       });
       expect(db.isTransaction).toBe(true);
     });
@@ -64,9 +69,9 @@ describe('inTransaction', () => {
 
     expect(() =>
       inTransaction(db, () => {
-        db.prepare('INSERT INTO notes (text) VALUES (?)').run('outer');
+        addNote(db, 'outer');
         inTransaction(db, () => {
-          db.prepare('INSERT INTO notes (text) VALUES (?)').run('inner');
+          addNote(db, 'inner');
           throw boom;
         });
       }),
