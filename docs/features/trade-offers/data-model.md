@@ -87,7 +87,7 @@ erDiagram
 
 | Column | Type | Constraints | Notes |
 |---|---|---|---|
-| `id` | TEXT | PK | `randomUUID()` in the service (sad.md §8) |
+| `id` | TEXT | NOT NULL, PK | `randomUUID()` in the service (sad.md §8) |
 | `proposer_id` | TEXT | NOT NULL | a `lobby` player; always the acting player (AC-06b) |
 | `recipient_id` | TEXT | NOT NULL | a `lobby` player of the same room (AC-05) |
 | `proposer_money` | INTEGER | NOT NULL | whole coins the proposer gives; `0` when none, written by the service |
