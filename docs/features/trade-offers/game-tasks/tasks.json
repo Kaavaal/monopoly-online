@@ -1,0 +1,502 @@
+{
+  "feature": "trade-offers",
+  "track": "game",
+  "prerequisites": [
+    {
+      "id": "P1",
+      "context": "lobby",
+      "what": "rooms and their members: \"are these two players members of one room\"; promotes `0004`–`0005`",
+      "blocks": [
+        "T4",
+        "T5",
+        "T8",
+        "T12"
+      ]
+    },
+    {
+      "id": "P2",
+      "context": "bank",
+      "what": "money accounts: \"how much money this player holds\", and a guarded move of money between two players that refuses with `bank.insufficient_funds`, synchronous, with no transaction of its own",
+      "blocks": [
+        "T8",
+        "T9",
+        "T12",
+        "T13"
+      ]
+    },
+    {
+      "id": "P3",
+      "context": "board",
+      "what": "title deeds that belong to a room: \"who owns each of these title deeds, if it exists\", and a guarded move of several deeds that refuses with `board.deed_owner_changed`, synchronous, with no transaction of its own; promotes `0006`–`0008`",
+      "blocks": [
+        "T4",
+        "T5",
+        "T8",
+        "T9",
+        "T12",
+        "T13"
+      ]
+    },
+    {
+      "id": "P4",
+      "context": "lobby",
+      "what": "the player secret: \"who is acting, from the secret the request carries\", and the refusal for a request without a valid secret",
+      "blocks": [
+        "T8",
+        "T10",
+        "T11",
+        "T12"
+      ]
+    }
+  ],
+  "tasks": [
+    {
+      "id": "T1",
+      "title": "Let the refusal factories carry a dotted code",
+      "file": "carry-dotted-refusal-code.md",
+      "layer": "shared",
+      "context": "shared",
+      "deps": [],
+      "needs": [],
+      "acs": [
+        "AC-02"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/shared/errors.ts"
+      ],
+      "estimate": "S",
+      "status": "todo",
+      "dod": [
+        "`src/shared/errors.ts`: `notFound`, `conflict` and `invalid` take `(message, code?)`; `AppError` is unchanged",
+        "`git diff --stat` shows no change under `test/lobby`, `test/board` or in `src/shared/http.ts`",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T2",
+      "title": "Add the transaction helper an exchange runs in",
+      "file": "add-transaction-helper.md",
+      "layer": "shared",
+      "context": "shared",
+      "deps": [],
+      "needs": [],
+      "acs": [
+        "AC-07"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/shared/db.ts",
+        "test/shared/db.test.ts"
+      ],
+      "estimate": "S",
+      "status": "todo",
+      "dod": [
+        "`test/shared/db.test.ts`: commit on return, roll back and rethrow on throw",
+        "`src/shared/db.ts` exports the helper; `src/shared/migrate.ts` is unchanged",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T3",
+      "title": "Wire an empty trades context last in the composition root",
+      "file": "wire-trades-context.md",
+      "layer": "wiring",
+      "context": "trades",
+      "deps": [],
+      "needs": [],
+      "acs": [
+        "AC-01"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/trades/module.ts",
+        "src/app.ts",
+        "ARCHITECTURE.md",
+        "CLAUDE.md"
+      ],
+      "estimate": "S",
+      "status": "todo",
+      "dod": [
+        "`src/app.ts` creates the modules in the order lobby, board, bank, turns, trades",
+        "`ARCHITECTURE.md` context map and mermaid graph show `trades` using `lobby`, `board`, `bank`",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T4",
+      "title": "Promote the trade_offers migration",
+      "file": "promote-trade-offers-migration.md",
+      "layer": "migration",
+      "context": "trades",
+      "deps": [],
+      "needs": [
+        "P1",
+        "P3"
+      ],
+      "acs": [
+        "AC-01"
+      ],
+      "codes": [],
+      "files_hint": [
+        "docs/features/trade-offers/game-migrations/0009_trades_offers.sql",
+        "docs/features/trade-offers/game-migrations/0009_trades_offers.down.sql",
+        "migrations/0009_trades_offers.sql"
+      ],
+      "estimate": "S",
+      "status": "blocked",
+      "dod": [
+        "`diff migrations/0009_trades_offers.sql docs/features/trade-offers/game-migrations/0009_trades_offers.sql` prints nothing",
+        "the rehearsal `.claude/skills/game-data-model/scripts/roundtrip.ts` passes up, down, up; `pnpm migrate` applies `0009_trades_offers` on a fresh db",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T5",
+      "title": "Promote the trade_offer_properties migration",
+      "file": "promote-trade-offer-properties-migration.md",
+      "layer": "migration",
+      "context": "trades",
+      "deps": [
+        "T4"
+      ],
+      "needs": [
+        "P1",
+        "P3"
+      ],
+      "acs": [
+        "AC-01"
+      ],
+      "codes": [],
+      "files_hint": [
+        "docs/features/trade-offers/game-migrations/0010_trades_offer_properties.sql",
+        "docs/features/trade-offers/game-migrations/0010_trades_offer_properties.down.sql",
+        "migrations/0010_trades_offer_properties.sql"
+      ],
+      "estimate": "S",
+      "status": "blocked",
+      "dod": [
+        "`diff migrations/0010_trades_offer_properties.sql docs/features/trade-offers/game-migrations/0010_trades_offer_properties.sql` prints nothing",
+        "the rehearsal `.claude/skills/game-data-model/scripts/roundtrip.ts` passes up, down, up; `pnpm migrate` applies `0010_trades_offer_properties` on a fresh db",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T6",
+      "title": "Model the trade offer, its states and what makes it a trade",
+      "file": "model-trade-offer.md",
+      "layer": "domain",
+      "context": "trades",
+      "deps": [
+        "T1"
+      ],
+      "needs": [],
+      "acs": [
+        "AC-02",
+        "AC-13",
+        "AC-18"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/trades/domain/offer.ts"
+      ],
+      "estimate": "M",
+      "status": "todo",
+      "dod": [
+        "`src/trades/domain/offer.ts` holds the state function; `grep -rn expiresAt src/trades` shows no clock comparison in another file once T7 to T12 land",
+        "`src/trades/domain/offer.ts` imports only `../../shared/errors.js`; the port interfaces are declared here, not imported from another context",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T7",
+      "title": "Store and read trade offers",
+      "file": "store-trade-offers.md",
+      "layer": "infra",
+      "context": "trades",
+      "deps": [
+        "T5",
+        "T6"
+      ],
+      "needs": [],
+      "acs": [
+        "AC-01",
+        "AC-06",
+        "AC-17"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/trades/infra/sqlite/offerRepo.ts"
+      ],
+      "estimate": "M",
+      "status": "todo",
+      "dod": [
+        "`src/trades/infra/sqlite/offerRepo.ts` implements the repository interface of `src/trades/domain/offer.ts`; every statement is prepared once",
+        "`EXPLAIN QUERY PLAN` of the reads by proposer and by recipient on a migrated db names `trade_offers_proposer_id` and `trade_offers_recipient_pending`; the output is pasted in the commit message",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T8",
+      "title": "Propose a trade offer: a pending offer, and requests that are not a trade",
+      "file": "propose-offer-request-checks.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T3",
+        "T7"
+      ],
+      "needs": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "acs": [
+        "AC-01",
+        "AC-02",
+        "AC-03",
+        "AC-05"
+      ],
+      "codes": [
+        "trades.not_a_trade",
+        "trades.unknown_player_or_deed",
+        "trades.recipient_not_in_room"
+      ],
+      "files_hint": [
+        "src/trades/app/service.ts",
+        "src/trades/infra/http/routes.ts",
+        "src/trades/module.ts",
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "L",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: AC-01 answers 201 with state `pending` and `expiresAt` 5 minutes after `createdAt`; owners and balances unchanged",
+        "`test/trades/offer.test.ts`: 400 `trades.not_a_trade` for each of: a side gives nothing, the recipient is the proposer, a deed named twice",
+        "`test/trades/offer.test.ts`: 400 `trades.unknown_player_or_deed` for an unknown recipient and for an unknown deed; 400 `trades.recipient_not_in_room`; no offer is stored after any refusal",
+        "the route declares JSON schemas for body and every response of the contract",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T9",
+      "title": "Propose a trade offer: not yours to give, and one pending offer per proposer",
+      "file": "propose-offer-state-checks.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T8"
+      ],
+      "needs": [
+        "P2",
+        "P3"
+      ],
+      "acs": [
+        "AC-04",
+        "AC-06"
+      ],
+      "codes": [
+        "trades.not_yours_to_give",
+        "trades.pending_offer_exists"
+      ],
+      "files_hint": [
+        "src/trades/app/service.ts",
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "M",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: 400 `trades.not_yours_to_give` for a deed of each side and for the proposer's money; 201 when only the recipient lacks the money",
+        "`test/trades/offer.test.ts`: 409 `trades.pending_offer_exists`, and the first offer still lists as `pending` with the same terms",
+        "`test/trades/offer.test.ts`: a proposal succeeds once the clock is moved 5 minutes past the first offer (vitest fake timers)",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T10",
+      "title": "List my trade offers as a recipient and as a proposer",
+      "file": "list-my-trade-offers.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T8"
+      ],
+      "needs": [
+        "P4"
+      ],
+      "acs": [
+        "AC-16",
+        "AC-17",
+        "AC-18"
+      ],
+      "codes": [],
+      "files_hint": [
+        "src/trades/app/service.ts",
+        "src/trades/infra/http/routes.ts",
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "M",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: `role=recipient` answers 200 with only pending offers addressed to the actor; `role=proposer` with every offer the actor sent and its state",
+        "`test/trades/offer.test.ts`: a third player gets neither offer in either list (AC-16)",
+        "`test/trades/offer.test.ts`: with the clock moved past 5 minutes the recipient's list is empty and the proposer's shows `expired` (AC-18)",
+        "the route declares JSON schemas for the query and every response of the contract",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T11",
+      "title": "Reject a trade offer, and refuse an answer that cannot be given",
+      "file": "reject-trade-offer.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T8"
+      ],
+      "needs": [
+        "P4"
+      ],
+      "acs": [
+        "AC-12",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16"
+      ],
+      "codes": [
+        "trades.offer_not_found",
+        "trades.only_recipient_answers",
+        "trades.offer_already_answered",
+        "trades.offer_expired"
+      ],
+      "files_hint": [
+        "src/trades/app/service.ts",
+        "src/trades/infra/http/routes.ts",
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "M",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: AC-12 answers 200 with state `rejected`; owners and balances unchanged; the proposer's next proposal with the same terms answers 201",
+        "`test/trades/offer.test.ts`: 404 `trades.offer_not_found` for a third player, with a body equal to the one for an unknown id; 400 `trades.only_recipient_answers`",
+        "`test/trades/offer.test.ts`: 409 `trades.offer_already_answered` on a second rejection; 409 `trades.offer_expired` with the clock moved past 5 minutes; the offer keeps its state after each",
+        "the route declares JSON schemas for params and every response of the contract",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T12",
+      "title": "Accept a trade offer: the exchange, in full or not at all",
+      "file": "accept-trade-offer.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T2",
+        "T11"
+      ],
+      "needs": [
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "acs": [
+        "AC-07",
+        "AC-08",
+        "AC-09",
+        "AC-10",
+        "AC-13",
+        "AC-14",
+        "AC-15",
+        "AC-16"
+      ],
+      "codes": [
+        "trades.offer_not_found",
+        "trades.only_recipient_answers",
+        "trades.offer_already_answered",
+        "trades.offer_expired",
+        "trades.player_left_room",
+        "board.deed_owner_changed",
+        "bank.insufficient_funds"
+      ],
+      "files_hint": [
+        "src/trades/app/service.ts",
+        "src/trades/infra/http/routes.ts",
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "L",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: AC-07 answers 200 with state `accepted`; each deed has its new owner, each balance its new amount, and the room's money adds up to what it was",
+        "`test/trades/offer.test.ts`: 404 `trades.offer_not_found`, 400 `trades.only_recipient_answers`, 409 `trades.offer_already_answered`, 409 `trades.offer_expired` on accept",
+        "`test/trades/offer.test.ts`: 409 `trades.player_left_room`, 409 `board.deed_owner_changed`, 409 `bank.insufficient_funds`; after each, owners and balances are unchanged and the offer is `pending`",
+        "`src/trades/app/service.ts` calls nothing asynchronous between the start of the transaction and its end; the log line is written outside it",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T13",
+      "title": "Prove one winner of two acceptances, and the speed targets",
+      "file": "prove-one-winner-and-speed.md",
+      "layer": "ports",
+      "context": "trades",
+      "deps": [
+        "T10",
+        "T12"
+      ],
+      "needs": [
+        "P2",
+        "P3"
+      ],
+      "acs": [
+        "AC-11",
+        "AC-11b"
+      ],
+      "codes": [
+        "board.deed_owner_changed",
+        "bank.insufficient_funds"
+      ],
+      "files_hint": [
+        "test/trades/offer.test.ts"
+      ],
+      "estimate": "M",
+      "status": "blocked",
+      "dod": [
+        "`test/trades/offer.test.ts`: AC-11, 100 of 100 runs give one `accepted` and one 409 `board.deed_owner_changed`; the deed has exactly one owner",
+        "`test/trades/offer.test.ts`: AC-11b, 100 of 100 runs give one `accepted` and one 409 `bank.insufficient_funds`; the room's money is unchanged",
+        "`test/trades/offer.test.ts`: p95 of a write is at most 5 ms and p95 of a list of 300 rows at most 10 ms",
+        "`pnpm check` green"
+      ]
+    },
+    {
+      "id": "T14",
+      "title": "Reconcile the contract and the docs with the built routes",
+      "file": "reconcile-contract-and-docs.md",
+      "layer": "docs",
+      "context": "trades",
+      "deps": [
+        "T9",
+        "T10",
+        "T12"
+      ],
+      "needs": [],
+      "acs": [],
+      "codes": [],
+      "files_hint": [
+        "docs/features/trade-offers/game-contracts/openapi.yaml",
+        "docs/features/trade-offers/game-contracts/api-sync-report.md",
+        "docs/features/trade-offers/game-sad.md",
+        "docs/features/trade-offers/CONTEXT.md"
+      ],
+      "estimate": "S",
+      "status": "todo",
+      "dod": [
+        "`docs/features/trade-offers/game-contracts/api-sync-report.md` has a new run with verdict `PASS` or `PASS (with deferrals)`, and no deferral that says a route or `errors.ts` is not built",
+        "`pnpm dlx @stoplight/spectral-cli lint docs/features/trade-offers/game-contracts/openapi.yaml` reports 0 errors",
+        "`pnpm check` green"
+      ]
+    }
+  ]
+}
