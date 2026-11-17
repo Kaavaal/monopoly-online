@@ -17,6 +17,15 @@ function notes() {
   return db.prepare('SELECT text FROM notes ORDER BY rowid').all().map((row) => row.text);
 }
 
+function thrownBy(run: () => void): unknown {
+  try {
+    run();
+  } catch (err) {
+    return err;
+  }
+  return undefined;
+}
+
 describe('transaction', () => {
   it('keeps the write and hands back the result when the body returns', () => {
     const result = transaction(db, () => {
@@ -32,12 +41,15 @@ describe('transaction', () => {
   it('undoes the write and rethrows the same error when the body throws', () => {
     const boom = new Error('boom');
 
-    expect(() =>
-      transaction(db, () => {
-        write('lost');
-        throw boom;
-      }),
-    ).toThrow(boom);
+    // toThrow(boom) compares only the message; the instance is what must come back.
+    expect(
+      thrownBy(() =>
+        transaction(db, () => {
+          write('lost');
+          throw boom;
+        }),
+      ),
+    ).toBe(boom);
 
     expect(notes()).toEqual([]);
     expect(db.isTransaction).toBe(false);
@@ -46,15 +58,17 @@ describe('transaction', () => {
   it('rolls the outer transaction back as a whole when a nested call throws', () => {
     const boom = new Error('boom');
 
-    expect(() =>
-      transaction(db, () => {
-        write('outer');
+    expect(
+      thrownBy(() =>
         transaction(db, () => {
-          write('inner');
-          throw boom;
-        });
-      }),
-    ).toThrow(boom);
+          write('outer');
+          transaction(db, () => {
+            write('inner');
+            throw boom;
+          });
+        }),
+      ),
+    ).toBe(boom);
 
     expect(notes()).toEqual([]);
     expect(db.isTransaction).toBe(false);
@@ -81,5 +95,28 @@ describe('transaction', () => {
       transaction(db, () => Promise.resolve(1));
     };
     expect(typeOnly).toBeTypeOf('function');
+  });
+
+  it('refuses an async body the types let through, and keeps nothing', () => {
+    expect(() =>
+      transaction<void>(db, async () => {
+        write('lost');
+      }),
+    ).toThrow('transaction body must be synchronous');
+
+    expect(notes()).toEqual([]);
+    expect(db.isTransaction).toBe(false);
+  });
+
+  it('refuses an async body in a nested call too', () => {
+    expect(() =>
+      transaction(db, () => {
+        transaction<void>(db, async () => {
+          write('lost');
+        });
+      }),
+    ).toThrow('transaction body must be synchronous');
+
+    expect(notes()).toEqual([]);
   });
 });

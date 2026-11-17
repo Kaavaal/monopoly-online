@@ -12,16 +12,24 @@ export function openDb(path = ':memory:'): Db {
 /** A promise as the body's result means an async body, which would outlive the transaction. */
 type Sync<T> = T extends PromiseLike<unknown> ? never : T;
 
+/** The types let an async body through as `transaction<void>` or as `any`; refuse it before the commit. */
+function sync<T>(result: T): T {
+  if (result instanceof Promise) throw new Error('transaction body must be synchronous');
+  return result;
+}
+
 /**
  * Runs `body` between BEGIN IMMEDIATE and COMMIT; on a throw rolls back and rethrows.
  * Called inside an open transaction it joins it: the outermost call commits or rolls back.
+ * So a nested throw undoes anything only if it reaches the outermost call: a body that catches it
+ * and returns commits what the nested call wrote.
  */
 export function transaction<T>(db: Db, body: () => Sync<T>): T {
-  if (db.isTransaction) return body();
+  if (db.isTransaction) return sync(body());
 
   db.exec('BEGIN IMMEDIATE');
   try {
-    const result = body();
+    const result = sync(body());
     db.exec('COMMIT');
     return result;
   } catch (err) {
