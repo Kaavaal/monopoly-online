@@ -15,7 +15,7 @@ status: "todo"
 
 ## Why
 
-US-03, and the answer guards that accept reuses. Derives from [PRD §5 AC-08, AC-09, AC-10, AC-10b, AC-12, AC-14](../PRD.md), [sad §6 Reject a trade offer](../sad.md) and [openapi.yaml `rejectTradeOffer`](../contracts/openapi.yaml).
+US-03, and the answer guards that accept reuses. Derives from [PRD §5 AC-08, AC-09, AC-10, AC-10b, AC-12, AC-14](../PRD.md), [sad §6 Reject a trade offer](../sad.md), [data-model.md § `trade_offers`](../data-model.md) and [openapi.yaml `rejectTradeOffer`](../contracts/openapi.yaml).
 
 ## What
 

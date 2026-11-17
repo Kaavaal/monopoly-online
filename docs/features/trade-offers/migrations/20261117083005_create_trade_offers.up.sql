@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS trade_offers (
   proposer_money INTEGER NOT NULL,
   recipient_money INTEGER NOT NULL,
   state TEXT NOT NULL,
+  note TEXT,
   expires_at TEXT NOT NULL,
   created_at TEXT NOT NULL
 );

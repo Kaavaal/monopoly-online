@@ -19,7 +19,6 @@ The offer row is what every flow reads and writes. Derives from [data-model.md Â
 
 ## What
 
-- Bring the staged pair in line with data-model.md first: the staged `up.sql` has no `note` column (api-sync-report.md, Deferrals). The pair is not applied yet, so it is edited in place, not fixed forward.
 - Promote the up file as `migrations/NNNN_trades_offers.sql`, next free number at that moment. The down file stays staged.
 
 ## Definition of Done

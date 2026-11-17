@@ -15,7 +15,7 @@ status: "todo"
 
 ## Why
 
-US-01, the checks against other offers, rooms, owners and balances. Derives from [PRD §5 AC-04, AC-05, AC-06](../PRD.md) and [openapi.yaml `createTradeOffer`](../contracts/openapi.yaml).
+US-01, the checks against other offers, rooms, owners and balances. Derives from [PRD §5 AC-04, AC-05, AC-06](../PRD.md), [sad §6 Propose a trade offer](../sad.md), [data-model.md § `trade_offers` and `trade_offer_properties`](../data-model.md) and [openapi.yaml `createTradeOffer`](../contracts/openapi.yaml).
 
 ## What
 

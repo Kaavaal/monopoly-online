@@ -15,7 +15,7 @@ status: "todo"
 
 ## Why
 
-US-02 and US-07, the flow the three quality goals are about. Derives from [PRD §5 AC-07, AC-16, AC-17, AC-18](../PRD.md), [sad §6 Critical flow 1](../sad.md), [ADR-0002](../adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md) and [openapi.yaml `acceptTradeOffer`](../contracts/openapi.yaml).
+US-02 and US-07, the flow the three quality goals are about. Derives from [PRD §5 AC-07, AC-16, AC-17, AC-18](../PRD.md), [sad §6 Critical flow 1](../sad.md), [ADR-0002](../adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md), [data-model.md § `trade_offers`](../data-model.md) (`state` is the column it changes) and [openapi.yaml `acceptTradeOffer`](../contracts/openapi.yaml).
 
 ## What
 

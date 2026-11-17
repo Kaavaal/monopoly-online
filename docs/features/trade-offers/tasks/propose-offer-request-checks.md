@@ -15,7 +15,7 @@ status: "todo"
 
 ## Why
 
-US-01, the part that needs no state of other offers. Derives from [PRD §5 AC-01, AC-02, AC-03, AC-05, AC-06b](../PRD.md), [sad §6 Propose a trade offer](../sad.md) and [openapi.yaml `createTradeOffer`](../contracts/openapi.yaml).
+US-01, the part that needs no state of other offers. Derives from [PRD §5 AC-01, AC-02, AC-03, AC-05, AC-06b](../PRD.md), [sad §6 Propose a trade offer](../sad.md), [data-model.md § `trade_offers` and `trade_offer_properties`](../data-model.md) and [openapi.yaml `createTradeOffer`](../contracts/openapi.yaml).
 
 ## What
 

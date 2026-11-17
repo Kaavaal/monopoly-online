@@ -71,7 +71,8 @@ goes in the epic's prerequisites table and in `needs` of every task it blocks. I
    ```
 
    A red gate means the file is not done: fix the section it names and run it again. The eight gates:
-   1. frontmatter complete (`id title layer context deps needs acs codes files_hint estimate status`);
+   1. frontmatter complete (`id title layer context deps needs acs codes files_hint estimate status`), with a
+      non-empty `files_hint` and an `estimate` of S, M or L;
    2. every `deps` id exists, and the graph of all files written so far stays acyclic;
    3. at least one AC from game-prd §5 (a `docs` task may have none);
    4. every relative link in the file resolves, and the file links game-sad.md and game-contracts/openapi.yaml
@@ -86,7 +87,8 @@ goes in the epic's prerequisites table and in `needs` of every task it blocks. I
    task with an unmet `needs` starts `blocked`.
 6. **`tasks.json`.** Same model as the markdown, written from it: the fields of the plugin's `implement-tasks`
    contract (`id title layer deps acs dod files_hint`) plus `context`, `needs`, `codes`, and a top-level
-   `prerequisites` list. `layer: ports` stays the plugin's name for the slice.
+   `prerequisites` list. `layer: ports` stays the plugin's name for the slice. `dod` is the list of the task's
+   DoD lines, not the plugin's one sentence, so the JSON says exactly what the markdown says.
 7. **Self-check.** The same script without `--task` checks every task, the solid mermaid edges against `deps`
    and the dotted ones against `needs` (the structural check of the graph; no `mmdc` here), at least one wave
    with two tasks, every AC of game-prd §5 in some `acs` and every CONTEXT.md code in some `codes`. It must

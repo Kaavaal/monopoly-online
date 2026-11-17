@@ -68,7 +68,9 @@ function cycle(): string | undefined {
 function gates(id: string, t: Task): void {
   console.log(`${id} (${t.file})`);
   const layer = list(t.fm.get('layer'))[0] ?? '';
-  const missing = KEYS.filter((k) => !t.fm.has(k)).concat(SCALARS.filter((k) => t.fm.has(k) && !list(t.fm.get(k))[0]).map((k) => `${k} (empty)`));
+  const missing = KEYS.filter((k) => !t.fm.has(k)).concat(SCALARS.filter((k) => t.fm.has(k) && !list(t.fm.get(k))[0]).map((k) => `${k} (empty)`))
+    .concat(t.fm.has('files_hint') && !list(t.fm.get('files_hint')).length ? ['files_hint (empty)'] : [])
+    .concat(t.fm.has('estimate') && !['S', 'M', 'L'].includes(list(t.fm.get('estimate'))[0] ?? '') ? ['estimate (not S, M or L)'] : []);
   say(!missing.length && LAYERS.includes(layer), `1 frontmatter${missing.length ? `, missing ${missing.join(' ')}` : ''}, layer ${layer}`);
   const unknown = deps(t).filter((d) => !tasks.has(d));
   const loop = cycle();
@@ -135,7 +137,7 @@ if (only) {
   const silent = codes.filter((c) => c && !raised.has(c));
   say(!silent.length, `CONTEXT.md codes raised ${codes.length - silent.length} of ${codes.length}${silent.length ? `, never ${silent.join(' ')}` : ''}`);
 
-  type Json = { tasks: { id: string; title: string; layer: string; deps: string[]; acs: string[]; codes: string[]; needs: string[]; files_hint: string[] }[]; prerequisites: { id: string }[] };
+  type Json = { tasks: { id: string; title: string; layer: string; dod: string[]; deps: string[]; acs: string[]; codes: string[]; needs: string[]; files_hint: string[] }[]; prerequisites: { id: string }[] };
   const json = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8')) as Json;
   const fields = ['deps', 'acs', 'codes', 'needs', 'files_hint'] as const;
   const drift = json.tasks
@@ -143,7 +145,8 @@ if (only) {
       const t = tasks.get(j.id);
       const scalar = (k: string): string | undefined => t?.fm.get(k)?.replace(/^"|"$/g, '');
       return !t || fields.some((f) => JSON.stringify(list(t.fm.get(f))) !== JSON.stringify(j[f])) ||
-        scalar('title') !== j.title || scalar('layer') !== j.layer;
+        scalar('title') !== j.title || scalar('layer') !== j.layer ||
+        JSON.stringify((section(t.body, 'Definition of Done').match(/^- \[[ x]\] .*$/gm) ?? []).map((b) => b.slice(6))) !== JSON.stringify(j.dod);
     })
     .map((j) => j.id);
   if (json.tasks.length !== tasks.size) drift.push(`${json.tasks.length} in json vs ${tasks.size} files`);

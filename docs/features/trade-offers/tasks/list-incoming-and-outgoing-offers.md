@@ -15,7 +15,7 @@ status: "todo"
 
 ## Why
 
-US-04, US-05 and US-06. Derives from [PRD §5 AC-11, AC-13, AC-14, AC-15](../PRD.md), [sad §6 the two list flows and Let an unanswered offer expire](../sad.md) and [openapi.yaml `listIncomingTradeOffers`](../contracts/openapi.yaml).
+US-04, US-05 and US-06. Derives from [PRD §5 AC-11, AC-13, AC-14, AC-15](../PRD.md), [sad §6 the two list flows and Let an unanswered offer expire](../sad.md), [data-model.md § `trade_offers` and `trade_offer_properties`](../data-model.md) and [openapi.yaml `listIncomingTradeOffers` and `listOutgoingTradeOffers`](../contracts/openapi.yaml).
 
 ## What
 
