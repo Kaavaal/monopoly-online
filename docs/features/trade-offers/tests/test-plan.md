@@ -135,8 +135,9 @@ failure cases the PRD implies beyond them:
   routes → expected: refused before any rule runs, nothing changes, the shape of the refusal matches the
   contract. PRD §6.1 names this "acting as another player"; it has no AC of its own and arrives with the
   `lobby` prerequisite (ADR-0003)
-- an offer id that is malformed, and one that is well-formed but unknown, on accept and reject → expected:
-  answered as an offer that does not exist
+- a malformed offer id on accept and reject → expected: refused as a malformed request before any rule runs,
+  nothing changes
+- a well-formed but unknown offer id on accept and reject → expected: answered as an offer that does not exist
 - an amount equal to the side's whole balance → expected: the offer is recorded; after acceptance that side
   has no money left
 - an offer that gives every title deed a side owns → expected: recorded and accepted like any other
