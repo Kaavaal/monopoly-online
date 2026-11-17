@@ -241,6 +241,12 @@ describe('validatePayload', () => {
       [],
     );
   });
+
+  it('counts summary length in characters, not UTF-16 units', () => {
+    const summary = (length: number) => [{ type: 'changed', summary: 'y'.repeat(length - 1) + '🚀', commits: ['a1b2c3d'] }];
+    expect(validatePayload(withEntries(summary(90)))).toEqual([]);
+    expect(validatePayload(withEntries(summary(91)))).toEqual(['$.entries[0].summary is 91 chars, max 90']);
+  });
 });
 
 describe('verifyNotes', () => {

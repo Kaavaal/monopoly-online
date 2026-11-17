@@ -120,10 +120,11 @@ export function validatePayload(value, schema = SCHEMA, path = '$') {
   const problems = [];
   if (kind === 'string') {
     if (schema.enum && !schema.enum.includes(value)) problems.push(`${path} is not one of ${schema.enum.join('|')}`);
-    if (schema.minLength !== undefined && value.length < schema.minLength)
+    const length = [...value].length; // JSON Schema counts code points, not UTF-16 units
+    if (schema.minLength !== undefined && length < schema.minLength)
       problems.push(`${path} is shorter than ${schema.minLength}`);
-    if (schema.maxLength !== undefined && value.length > schema.maxLength)
-      problems.push(`${path} is ${value.length} chars, max ${schema.maxLength}`);
+    if (schema.maxLength !== undefined && length > schema.maxLength)
+      problems.push(`${path} is ${length} chars, max ${schema.maxLength}`);
     if (schema.pattern && !new RegExp(schema.pattern).test(value))
       problems.push(`${path} does not match ${schema.pattern}`);
   }
