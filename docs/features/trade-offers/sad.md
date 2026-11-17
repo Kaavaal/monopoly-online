@@ -11,13 +11,6 @@ target_surfaces: []  # filled in §4 — subset of: backend-service | web-fronte
 
 # Software Architecture Document — trade-offers
 
-<!-- Stages 04-05 → see sdlc/plugin/skills/architecture-design/SKILL.md -->
-<!-- 12 Arc42 sections. Empty sections — <!-- N/A: <one-line reason> -->. -->
-<!-- C4 Context (L1) lives inline in §3. C4 Container (L2) lives inline in §5. -->
-<!-- §6 Runtime view seeds the primary flow(s) here; complete-sequence-diagrams (stage 06) then -->
-<!--    fills §6 with every critical flow / §5 AC — no cap. -->
-<!-- Numbers in §10 come VERBATIM from PRD §6 NFR — no inventing, no rounding. -->
-
 ## 1. Introduction and goals
 
 **Intent.** Players in one room can trade title deeds and money. A proposer sends one recipient a trade offer;
@@ -82,34 +75,39 @@ work.
 
 ## 3. Context and scope
 
-<!-- 🎯 Навіщо: малює КОРДОН СИСТЕМИ — хто з нею говорить ззовні, де закінчується зона довіри. -->
-<!--           Без §3 §5 і §8 (авторизація) розпливаються — неясно, що «всередині», а що «зовні». -->
-<!-- 📋 Що писати: 2-3 речення бізнес-контексту + таблиця зовнішніх систем + Mermaid C4Context. -->
-<!-- 📌 Приклад: «зовнішні — нема (свідома відмова від third-party у v1)» — це теж рішення.   -->
-<!-- Кордон довіри (trust boundary) — лінія, за якою ти не довіряєш даним без перевірки.       -->
+The monopoly-online backend runs the game for players who sit in one room at the same time. This feature lets
+two of them, a proposer and a recipient, exchange title deeds and money through a trade offer. The system talks
+to nothing outside itself: there is no identity provider, no payment service and no channel that tells a player
+an offer arrived (PRD §3), so players say it out loud and look at their own offers.
 
-<Business context in 2-3 sentences. What the system does for whom.>
+The trust boundary is the HTTP interface. Everything in a request is untrusted until checked: the offer body,
+the ids it names, and the claim of which player is acting. A player who is neither the proposer nor the
+recipient of an offer gets no sign that it exists (PRD AC-14).
 
 **External systems (in / out):**
 
 | Actor or system | Type | Interaction |
 |---|---|---|
-| <e.g. IC> | Person | Creates goals, adds checkpoints |
-| <e.g. notification-service> | System (internal) | Receives cron registration |
-| <e.g. Identity Provider> | System (external) | Provides JWT tokens |
+| proposer | Person | Makes a trade offer to one player of the same room; lists the offers they made with their state |
+| recipient | Person | Lists the pending offers addressed to them; accepts or rejects each as a whole |
+| SQLite database file | Datastore (in-process library, one file) | Holds every context's tables; read and written synchronously |
+| External systems | none | A deliberate choice for this version: no arrival signal, no third-party identity |
 
 **C4 Context (L1):**
 
 ```mermaid
 C4Context
-    title <system> — System Context
+    title Trade offers — System Context
 
-    Person(user, "<User>", "<role + intent>")
-    System(system, "<Our System>", "<one-sentence description>")
-    System_Ext(ext, "<External system>", "<one-sentence description>")
+    Person(proposer, "proposer", "Player who makes a trade offer to one player of the same room")
+    Person(recipient, "recipient", "Player a trade offer is addressed to, the only one who can answer it")
 
-    Rel(user, system, "<interaction>", "<protocol>")
-    Rel(system, ext, "<interaction>", "<protocol>")
+    System(game, "monopoly-online backend", "One Node.js process that runs the game for the players of a room")
+    SystemDb(sqlite, "SQLite database file", "Players, rooms, title deeds, money accounts, trade offers")
+
+    Rel(proposer, game, "Makes a trade offer, lists the offers they made", "HTTP, JSON")
+    Rel(recipient, game, "Lists pending offers addressed to them, accepts or rejects", "HTTP, JSON")
+    Rel(game, sqlite, "Reads and writes", "node:sqlite, in-process")
 ```
 
 ## 4. Solution strategy
