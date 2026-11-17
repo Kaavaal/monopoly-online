@@ -44,7 +44,8 @@ Check, and report only what is wrong:
    reaches another only through its api; no context reads another's tables.
 5. **Flows and refusals.** Every §6 participant is a §5 container. Every PRD §9 transition that crosses a
    context is drawn here or named as left to the next stage. Every refusing branch carries a code that exists
-   in PRD §10.2 with the same kind, and no code is invented.
+   in PRD §10.2 with the same kind (when the PRD has no §10.2, a kind from `src/shared/errors.ts` that
+   matches the AC), and no code is invented.
 6. **Numbers.** Every number in §10 appears in PRD §6 as written. §2 versions match `package.json` and
    `.nvmrc`.
 7. **Structure.** All 12 sections filled or marked N/A with a reason; §9 matches `game-adr/` file for file;

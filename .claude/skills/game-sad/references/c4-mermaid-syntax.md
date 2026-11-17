@@ -76,4 +76,5 @@ sequenceDiagram
 - every `alt` has its `end`; `else` only inside an `alt`
 - no `+` or `-` activation marks: they break when an `alt` branch returns early
 
-If `npx -y @mermaid-js/mermaid-cli` is allowed, run `mmdc -i game-sad.md -o /tmp/check.md` instead.
+If `npx` may download packages, run
+`npx -y @mermaid-js/mermaid-cli -i docs/features/<slug>/game-sad.md -o /tmp/check.md` instead.

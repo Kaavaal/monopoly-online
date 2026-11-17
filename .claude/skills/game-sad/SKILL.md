@@ -29,8 +29,10 @@ answer a question for them.
    depends on it.
 2. Required, stop with a message if missing:
    - `docs/features/<slug>/CONTEXT.md`, the glossary. Its roles are the only actors on the diagrams.
-   - a PRD with `status: Approved`: `game-prd.md` first, else `PRD.md`. Say which one you took. The PRD's
-     §9 states and §10.2 refusals feed §6 and §8; a PRD without them gets those parts from its AC.
+   - a PRD with `status: Approved`: `game-prd.md` or `PRD.md`. If both are approved, ask the owner which one
+     is the source, since the plugin's later stages read `PRD.md`. The PRD's §9 states and §10.2 refusals
+     feed §6 and §8; a PRD without them gets states and refusals from its AC, with the kinds of
+     `src/shared/errors.ts` and no invented codes.
 3. Read `docs/features/<slug>/.size` if present (S when absent); never ask for the size.
 4. If `game-sad.md` exists, continue from the first section that still holds template text.
 
@@ -63,7 +65,7 @@ For each section in order: show the whole section, then one question per decisio
 - **Drop**: removed, with a line in the edits log.
 
 Run the gate below on every approved decision. Then write the section and its ADRs and commit them together:
-`docs(<slug>): game-sad §N — <what was decided>`. Do not go back to a written section; the critic catches
+`docs(<slug>): game-sad §N <a few words>`, one short line. Do not go back to a written section; the critic catches
 drift.
 
 For §3 and §5 write the Mermaid block first, check it (`references/c4-mermaid-syntax.md`), then describe it
@@ -105,8 +107,8 @@ After §12, fix by drafting and asking again:
 - every section is filled or carries `<!-- N/A: reason -->`
 - §3 has a `C4Context` block, §5 a `C4Container` block, §6 at least one `sequenceDiagram`, all checked
 - every §6 participant is a container from §5; no HTTP verbs, paths or status numbers in §6 messages
-- every `alt` branch in §6 that refuses names a code from the PRD's §10.2, and every code there appears on a
-  branch or in §8
+- every `alt` branch in §6 that refuses names a code from the PRD's §10.2 (its kind, when the PRD has no
+  §10.2), and every code there appears on a branch or in §8
 - the context map delta in §5 keeps the graph acyclic in the creation order of `src/app.ts`
 - §9 lists every file in `game-adr/` and nothing else; every ADR links PRD, SAD section, neighbour ADR and
   migration (or says none)
