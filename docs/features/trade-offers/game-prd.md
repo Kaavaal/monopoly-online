@@ -4,13 +4,13 @@ owner: "Kaavaal"
 updated_at: "2026-11-17"
 feature_size: "S"
 stage: "02"
-brief: "idea-brief.md"
+brief: "../../idea-brief.md"
 reference: "src/board"
 ---
 
 # PRD: trade offers
 
-> Inputs: [brief](./idea-brief.md) · [CONTEXT](./CONTEXT.md) · reference context `src/board`
+> Inputs: [brief](../../idea-brief.md) · [CONTEXT](./CONTEXT.md) · reference context `src/board`
 
 ## 1. Context
 

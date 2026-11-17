@@ -11,7 +11,7 @@ feasibility: confirmed
 
 # Game brief: trade offers
 
-Comparison run; `idea-brief.md` stays the write-prd input.
+Comparison run; `docs/idea-brief.md` stays the write-prd input.
 
 ## 1. Raw idea
 

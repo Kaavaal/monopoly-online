@@ -10,7 +10,7 @@ ticket: ""
 
 # PRD — trade-offers
 
-> **Inputs (required):** [idea-brief](./idea-brief.md) · [CONTEXT](./CONTEXT.md)
+> **Inputs (required):** [idea-brief](../../idea-brief.md) · [CONTEXT](./CONTEXT.md)
 > **Reference module:** `src/board` — title deeds, their owners, the kinds of refusal already in use.
 > **External context channels used:** project docs: [ARCHITECTURE.md](../../../ARCHITECTURE.md),
 > [board-property.md](../board-property.md).

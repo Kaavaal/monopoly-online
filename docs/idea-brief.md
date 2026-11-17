@@ -231,9 +231,9 @@ withdrawal, no arrival signal. Prerequisites: money accounts, rooms, a fixed boa
 
 ## Related
 
-- [CONTEXT.md](CONTEXT.md) — glossary, invariants, refusal names, the room filter, out of scope
-- [board-property.md](../board-property.md) — title deeds, the nearest shipped feature
-- [ARCHITECTURE.md](../../../ARCHITECTURE.md) — context map
+- [CONTEXT.md](features/trade-offers/CONTEXT.md) — glossary, invariants, refusal names, the room filter, out of scope
+- [board-property.md](features/board-property.md) — title deeds, the nearest shipped feature
+- [ARCHITECTURE.md](../ARCHITECTURE.md) — context map
 
 ## DoD self-check
 
