@@ -1,0 +1,2 @@
+-- lobby. Down of 0005_lobby_bootstrap_room: removes the bootstrap room.
+DELETE FROM rooms WHERE id = '00000000-0000-7000-8000-000000000001';
