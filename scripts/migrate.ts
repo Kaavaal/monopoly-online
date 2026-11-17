@@ -4,4 +4,7 @@ import { MIGRATIONS_DIR, migrate } from '../src/shared/migrate.js';
 
 const path = process.env.DB_PATH ?? 'monopoly.db';
 const applied = migrate(openDb(path), MIGRATIONS_DIR);
-console.log(applied.length > 0 ? `${path}: applied ${applied.join(', ')}` : `${path}: up to date`);
+const noun = applied.length === 1 ? 'migration' : 'migrations';
+console.log(
+  applied.length > 0 ? `${path}: applied ${applied.length} ${noun}: ${applied.join(', ')}` : `${path}: up to date`,
+);
