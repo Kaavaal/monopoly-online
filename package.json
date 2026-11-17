@@ -15,6 +15,7 @@
     "start": "tsx src/index.ts",
     "migrate": "tsx scripts/migrate.ts",
     "release:notes": "node scripts/release-notes.mjs",
+    "drift": "node scripts/spec-drift.mjs",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "arch:check": "depcruise --config .dependency-cruiser.cjs src",

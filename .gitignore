@@ -4,3 +4,4 @@ node_modules
 coverage
 .claude/*.local.md
 .worktrees/
+.drift/
