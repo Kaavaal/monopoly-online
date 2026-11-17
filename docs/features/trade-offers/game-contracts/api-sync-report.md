@@ -11,7 +11,7 @@
 
 | Question | Decision |
 |---|---|
-| `.claude/rules/openapi.md` says `code` = the bare kind; game-adr/0004 says the dotted code | the contract follows game-adr/0004 (by ADR-0004). The rules file is not edited; its "Deviations" row for `code` cites the `sad.md` track and is stale for this one |
+| `.claude/rules/openapi.md` says `code` = the bare kind; game-adr/0004 says the dotted code | the contract follows game-adr/0004 (by ADR-0004). The rules file was not edited in this run; after review, 19412d5 added an exception for `game-contracts/` that follows game-adr/0004 |
 | §6 draws accept and propose only | all four operations are in the contract; reject and list are derived from the PRD and parked as a sequence gap |
 | shape of the list | `GET /trade-offers?role=proposer\|recipient`, `role` required |
 | shape of the two sides | nested `proposerGives` / `recipientGives`, one `TradeSide` schema |

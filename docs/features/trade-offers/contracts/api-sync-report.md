@@ -153,8 +153,8 @@ Empty (scenario A).
 
 ## Section D — Deferrals
 
-Run 1 left four entries. None is closed: the first four rows below are carried forward unchanged. The last
-two are new in run 2.
+Run 1 left four entries. None is closed: the first three rows below are carried forward unchanged, the fourth
+(spectral) was updated after review in 19412d5. The last two are new in run 2.
 
 | What | Why parked | Next step |
 |---|---|---|
