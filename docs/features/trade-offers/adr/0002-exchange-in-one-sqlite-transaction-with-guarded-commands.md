@@ -68,8 +68,9 @@ How it works:
 **Positive**
 - Atomicity and the single winner of a race follow from the transaction and the synchronous driver; no lock
   table, version column or retry loop is needed.
-- A refused acceptance leaves no trace: the offer stays a pending offer and can be accepted again once the
-  money is there.
+- A refused acceptance leaves no trace in the database: the offer stays a pending offer and can be accepted
+  again once the money is there. The refusal and its reason go to the request log (SAD §8), which is how the
+  Refused acceptances KPI of PRD §7 is counted.
 - The guarded commands are reusable by later features (rent, buying a title deed).
 - A money leg that fails after the title deed leg has succeeded is a natural "fails midway" case for the
   atomicity test.
