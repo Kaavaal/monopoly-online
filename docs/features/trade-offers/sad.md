@@ -223,7 +223,9 @@ One flow is seeded here: accepting a trade offer. It is the only flow that cross
 one the three quality goals are about. The `complete-sequence-diagrams` stage adds the remaining flows
 (propose, reject, the two lists, expiry) and maps every acceptance criterion to a flow or a branch.
 
-**Critical flow 1: accept a trade offer** (PRD AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19)
+### Critical flow 1: accept a trade offer
+
+PRD AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19.
 
 ```mermaid
 sequenceDiagram

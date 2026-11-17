@@ -12,6 +12,9 @@ ticket: ""
 
 Brownfield delta on the schema of `migrations/0001`–`0003`. The migrations are staged under
 [`migrations/`](./migrations/), not in the live `migrations/` tree; `implement-tasks` promotes them.
+The `rooms` and `properties.room_id` pairs belong to the `lobby` and `board` prerequisite features and are
+promoted by them (CLAUDE.md: one feature touches one context); trade-offers promotes only the two `trades`
+pairs.
 
 Inputs: [PRD.md](./PRD.md) §1, §5; [sad.md](./sad.md) §4, §5, §6, §8; ADR-0001, ADR-0002.
 

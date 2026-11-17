@@ -155,7 +155,9 @@ for its read. No index on `properties.room_id`, `property_id` or `giver_id`: no 
 ## Migrations
 
 Promote in this order; a step waits for the code named next to it. Each file keeps its staged name. The
-`.down.sql` files stay here.
+`.down.sql` files stay here. One feature touches one context (CLAUDE.md), so `0004`–`0005` go in with the
+`lobby` rooms feature and `0006`–`0008` with the `board` per-room title deeds feature; trade-offers itself
+promotes only `0009`–`0010`. They are staged here because the trades tables are rehearsed on top of them.
 
 | Staged file | Context | Step | Ships with |
 |---|---|---|---|
@@ -226,7 +228,7 @@ table has an origin: `trade_offers` and `trade_offer_properties` in sad.md §5 a
 | Down reverses up | pass: each down undoes its own up only; confirmed by the rehearsal |
 | FK columns indexed | pass: the one foreign key, `trade_offer_properties.offer_id`, leads the primary key |
 | No new CHECK / TRIGGER / business DEFAULT | pass: 3 `CHECK` hits, all in `0008`, copied verbatim from `migrations/0003_board_properties.sql`; no `TRIGGER`, no `DEFAULT` |
-| Rehearsal up → down → up | pass: `after down vs before up: same`, `after second up vs first up: same` (7 pairs on a scratch file outside the repo; the same result with the two `_drift` pairs added) |
+| Rehearsal up → down → up | pass: `after down vs before up: same`, `after second up vs first up: same` (7 pairs on a scratch file; the same with the two `_drift` pairs added). Rerun after the script began comparing stored DDL as well: still `same` |
 
 The rehearsal script looked for `*.up.sql` and so ran no pair on the names this skill stages; it was fixed
 in the same change to read `NNNN_<context>_<name>.sql` and to fail on an empty folder.
