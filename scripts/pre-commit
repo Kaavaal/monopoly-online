@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Deterministic floor: no commit while typecheck, tests or arch rules are red.
+set -euo pipefail
+cd "$(dirname "$0")/.."
+pnpm check
