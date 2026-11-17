@@ -109,6 +109,8 @@ is read from three places, in this order, and the report cites the one used:
    pnpm typecheck
    ```
 
+   Before the commit the same command with `--check` must exit 0: the committed types match the YAML.
+
    `--root-types` exports each schema by its name (`TradeOffer`), `--immutable` makes a response read-only
    to its consumer. First run with no consumer yet → copy `templates/contract.ts` to
    `test/contracts/<slug>.game-contract.ts` and fill the row types from game-data-model.md. A red typecheck

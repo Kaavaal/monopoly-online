@@ -19,6 +19,8 @@
 - `code` is a kind from `src/shared/errors.ts` (`invalid`, `not_found`, `conflict`; `unauthorized` once the
   `lobby` player secret ships). A contract advertises no code that file cannot produce. `message` carries the
   specifics: the title deed, the amount, the side.
+- Exception: contracts under `game-contracts/` follow game-adr/0004 and carry the dotted `<context>.<reason>`
+  code; the status still comes from the kind.
 - Shared types go through `$ref`; no schema is written inline twice.
 - No `additionalProperties: true` on a response shape.
 - No real personal data in `example` blocks: `Test User`, `Test Deed`, made-up UUIDs.
