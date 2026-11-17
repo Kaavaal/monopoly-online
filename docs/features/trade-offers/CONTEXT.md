@@ -17,6 +17,7 @@ updated_at: "2026-11-17"
 - rejected offer — a trade offer the recipient explicitly refused; it can no longer be accepted, and no title deeds or money change hands. NOT expired offer (an expired offer ended with no decision from the recipient).
 - room — the group of players who play one game together on one board; trade offers are possible only between players of the same room. NOT game (a game is one play-through with a start and an end; a room is the players it is played by).
 - trade offer — a proposal from one player to another player in the same room to give their own title deeds and/or money in exchange for the other's title deeds and/or money; the recipient accepts or rejects it as a whole, and it expires if left unanswered. NOT transfer (a transfer is a one-way movement of money between accounts in bank; a trade offer is a two-sided proposal that needs the recipient's consent).
+- trial game — one playtest session of one room, played by real players on the product, whether or not it is played to the end. NOT room (a room is the group of players; a trial game is one session they play, and one room may play several).
 
 ## Invariants
 
