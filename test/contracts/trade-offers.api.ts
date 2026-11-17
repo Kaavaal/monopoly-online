@@ -29,6 +29,8 @@ export interface paths {
          *     6. `invalid`: `recipientId` is the acting player (AC-05).
          *     7. `invalid`: the recipient or a title deed does not exist (AC-02).
          *     8. `conflict`: the proposer already has a pending offer; the message says when it runs out (AC-04).
+         *        The limit is per player, not per room: an offer made in a room the proposer has left counts
+         *        until it ends (ADR-0004).
          *     9. `conflict`: the recipient or a title deed is of another room (AC-05).
          *     10. `conflict`: a side gives a title deed it does not own, or more money than it has; the message
          *         names the title deed or the amount and the side (AC-06).
@@ -51,7 +53,8 @@ export interface paths {
          * List the pending offers addressed to me
          * @description US-05. Only pending offers whose recipient is the acting player, ordered by `createdAt`, then `id`.
          *     Offers the acting player already answered, expired offers and offers addressed to other players are
-         *     not listed (AC-13, AC-14).
+         *     not listed (AC-13, AC-14). The list is per player, not per room: a recipient who has left the room
+         *     still finds the offer here (AC-18, ADR-0004).
          */
         get: operations["listIncomingTradeOffers"];
         put?: never;
@@ -73,7 +76,8 @@ export interface paths {
          * List the offers I made
          * @description US-06, US-04. Every offer whose proposer is the acting player, in any state, ordered by `createdAt`,
          *     then `id`. An unanswered offer whose `expiresAt` is not later than the current time is shown with
-         *     the state `expired` (AC-11, AC-15). Offers made by other players are not listed (AC-14).
+         *     the state `expired` (AC-11, AC-15). Offers made by other players are not listed (AC-14). The list is
+         *     per player, not per room (ADR-0004).
          */
         get: operations["listOutgoingTradeOffers"];
         put?: never;
@@ -99,7 +103,8 @@ export interface paths {
          *     balances are checked again; every title deed and all money named in the offer change hands in one
          *     transaction, or nothing does.
          *
-         *     Refusals are checked in this order, and the first that applies is returned:
+         *     Refusals are checked in this order, and the first that applies is returned (3 to 6 are the order of
+         *     PRD §5, "Which refusal applies when several do"):
          *
          *     1. `unauthorized`: no player secret or an unknown one.
          *     2. `invalid`: `id` is not a UUID.
@@ -108,8 +113,9 @@ export interface paths {
          *     4. `conflict`: the acting player is its proposer (AC-08).
          *     5. `conflict`: the offer is accepted, rejected or expired; the message says how it ended
          *        (AC-09, AC-12).
-         *     6. `conflict`: a player left the room (AC-18), a giver no longer owns a title deed (AC-16, AC-19),
-         *        or a payer lacks the money (AC-17, AC-19b), checked in that order. The offer stays pending.
+         *     6. `conflict`: the proposer or the recipient left the room (AC-18), a giver no longer owns a title
+         *        deed (AC-16, AC-19), or a payer lacks the money (AC-17, AC-19b), checked in that order. The offer
+         *        stays pending.
          *
          *     Sending the same acceptance again after it went through returns refusal 5.
          */
@@ -132,9 +138,11 @@ export interface paths {
         /**
          * Reject a trade offer
          * @description US-03. The recipient rejects a pending offer. No title deed and no money changes hands, and the
-         *     proposer can make a new offer at once.
+         *     proposer can make a new offer at once. Room membership is not checked: a recipient who has left the
+         *     room can still reject (AC-18).
          *
-         *     Refusals are checked in this order, and the first that applies is returned:
+         *     Refusals are checked in this order, and the first that applies is returned (3 to 5 are the order of
+         *     PRD §5, "Which refusal applies when several do"):
          *
          *     1. `unauthorized`: no player secret or an unknown one.
          *     2. `invalid`: `id` is not a UUID.
@@ -389,7 +397,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description The rejected offer (AC-10). */
+            /** @description The rejected offer (AC-10, AC-18). */
             200: {
                 headers: {
                     [name: string]: unknown;
