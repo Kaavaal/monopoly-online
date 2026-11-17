@@ -1,5 +1,6 @@
 // Trade offer: a proposal from one player to another to exchange title deeds and/or money.
-// T5 stub: types and signatures only; the bodies and the lifetime value are not implemented yet.
+
+import { invalid } from '../../shared/errors.js';
 
 /** What is written to trade_offers.state. */
 export type StoredOfferState = 'pending' | 'accepted' | 'rejected';
@@ -7,8 +8,10 @@ export type StoredOfferState = 'pending' | 'accepted' | 'rejected';
 /** Stored states plus the derived one: an expired offer is never stored. */
 export type OfferState = StoredOfferState | 'expired';
 
-/** The offer lifetime in milliseconds. Stub value; T5 sets it. */
-export const OFFER_LIFETIME_MS: number = 0;
+/** The offer lifetime in milliseconds. */
+export const OFFER_LIFETIME_MS: number = 5 * 60 * 1000;
+
+const NOTE_MAX_LENGTH = 140;
 
 /** What one side gives. */
 export interface OfferSide {
@@ -75,13 +78,26 @@ export interface OfferMoney {
 
 /** The state of an offer at `now` (ISO 8601 UTC): the stored state, or `expired` when derived. */
 export function offerState(offer: Pick<TradeOffer, 'state' | 'expiresAt'>, now: string): OfferState {
-  void offer;
-  void now;
-  throw new Error('not implemented');
+  // Both are `Date.toISOString()` strings, so they order as text.
+  return offer.state === 'pending' && offer.expiresAt <= now ? 'expired' : offer.state;
 }
 
 /** Throws `invalid` when the terms break a rule of a trade offer; returns nothing otherwise. */
 export function validateOfferTerms(terms: OfferTerms): void {
-  void terms;
-  throw new Error('not implemented');
+  const sides = [terms.proposerGives, terms.recipientGives];
+  for (const side of sides) {
+    if (!Number.isInteger(side.money) || side.money < 0) {
+      throw invalid('money must be a whole number of coins, 0 or more');
+    }
+    if (side.propertyIds.length === 0 && side.money === 0) {
+      throw invalid('each side must give a title deed or some money');
+    }
+  }
+  const deeds = sides.flatMap((side) => side.propertyIds);
+  if (new Set(deeds).size !== deeds.length) {
+    throw invalid('a title deed can be named only once in an offer');
+  }
+  if (terms.note !== null && terms.note.length > NOTE_MAX_LENGTH) {
+    throw invalid(`note must be at most ${NOTE_MAX_LENGTH} characters`);
+  }
 }
