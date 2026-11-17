@@ -109,7 +109,7 @@ export interface paths {
          *     5. `conflict`: the offer is accepted, rejected or expired; the message says how it ended
          *        (AC-09, AC-12).
          *     6. `conflict`: a player left the room (AC-18), a giver no longer owns a title deed (AC-16, AC-19),
-         *        or a payer lacks the money (AC-17), checked in that order. The offer stays pending.
+         *        or a payer lacks the money (AC-17, AC-19b), checked in that order. The offer stays pending.
          *
          *     Sending the same acceptance again after it went through returns refusal 5.
          */
@@ -366,7 +366,7 @@ export interface operations {
             400: components["responses"]["InvalidId"];
             401: components["responses"]["Unauthorized"];
             404: components["responses"]["NoSuchOffer"];
-            /** @description The acting player's role or the current state does not allow the acceptance (AC-08, AC-09, AC-12, AC-16 to AC-19). */
+            /** @description The acting player's role or the current state does not allow the acceptance (AC-08, AC-09, AC-12, AC-16 to AC-19b). */
             409: {
                 headers: {
                     [name: string]: unknown;

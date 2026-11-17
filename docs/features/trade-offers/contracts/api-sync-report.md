@@ -10,6 +10,8 @@
 **Interface kind:** HTTP, from `sad.md` frontmatter `target_surfaces: [backend-service]`. No asynchronous flow
 (`sad.md` §6, §8), so no `events.md` and no `Idempotency-Key`.
 **Size:** S (from `.size`)
+**Hand sync after clarify-prd (2026-11-17):** AC-19b added to `acceptTradeOffer`, AC-05 now also names a title
+deed of another room (already refusal 9 of `createTradeOffer`). No shape change; `.size` is now M.
 
 Not read: `game-prd.md`, `game-sad.md`, `game-data-model.md`, `game-adr/`. They are the parallel track;
 `sad.md` §11 already lists the disagreement between the two PRDs as a risk.
@@ -55,7 +57,7 @@ Sources compared with `132646b`, the commit of run 2.
 | `createTradeOffer` | `POST /trade-offers` | US-01 | AC-01 to AC-06b, AC-10b |
 | `listIncomingTradeOffers` | `GET /trade-offers/incoming` | US-05 | AC-13, AC-14 |
 | `listOutgoingTradeOffers` | `GET /trade-offers/outgoing` | US-06, US-04 | AC-11, AC-14, AC-15 |
-| `acceptTradeOffer` | `POST /trade-offers/{id}/accept` | US-02, US-07 | AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19 |
+| `acceptTradeOffer` | `POST /trade-offers/{id}/accept` | US-02, US-07 | AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19b |
 | `rejectTradeOffer` | `POST /trade-offers/{id}/reject` | US-03 | AC-08, AC-09, AC-10, AC-12, AC-14 |
 
 ## Section A — field origins

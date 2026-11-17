@@ -235,7 +235,7 @@ paths:
         5. `conflict`: the offer is accepted, rejected or expired; the message says how it ended
            (AC-09, AC-12).
         6. `conflict`: a player left the room (AC-18), a giver no longer owns a title deed (AC-16, AC-19),
-           or a payer lacks the money (AC-17), checked in that order. The offer stays pending.
+           or a payer lacks the money (AC-17, AC-19b), checked in that order. The offer stays pending.
 
         Sending the same acceptance again after it went through returns refusal 5.
       operationId: acceptTradeOffer
@@ -267,7 +267,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
         "404": { $ref: "#/components/responses/NoSuchOffer" }
         "409":
-          description: The acting player's role or the current state does not allow the acceptance (AC-08, AC-09, AC-12, AC-16 to AC-19).
+          description: The acting player's role or the current state does not allow the acceptance (AC-08, AC-09, AC-12, AC-16 to AC-19b).
           content:
             application/json:
               schema: { $ref: "#/components/schemas/Error" }
@@ -286,7 +286,7 @@ paths:
                       code: conflict
                       message: "property aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa no longer belongs to the proposer"
                 cannotPay:
-                  summary: AC-17
+                  summary: AC-17, AC-19b
                   value:
                     error: { code: conflict, message: "the recipient cannot pay 150" }
 
