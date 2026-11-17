@@ -6,7 +6,7 @@ updated_at: "2026-11-17"
 feature_size: S
 stage: "04-05"
 ticket: ""
-target_surfaces: []  # filled in §4 — subset of: backend-service | web-frontend | mobile-app | desktop-app | cli | worker | library-sdk. Read (never re-derived) by api-forge/complete-sequence-diagrams/break-tasks/plan-tests/review-feature → _shared/surfaces.md
+target_surfaces: [backend-service]
 ---
 
 # Software Architecture Document — trade-offers
@@ -112,30 +112,38 @@ C4Context
 
 ## 4. Solution strategy
 
-<!-- 🎯 Навіщо: 3-4 СТРАТЕГІЧНІ СТОВПИ, з яких потім ростуть усі ADR. Без §4 кожен ADR    -->
-<!--           виглядає випадковим — нема зонтика. ⭐ Найгустіша секція — тут ADR-gate    -->
-<!--           спрацьовує майже завжди (рішення незворотні + мульти-модульні).            -->
-<!-- 📋 Що писати: спершу Target surface(s), потім 3-4 стратегічні вибори.                -->
-<!--           На кожен — заголовок + 2-3 речення rationale.                              -->
-<!-- 📌 ПЕРШЕ рішення §4 — Target surface(s): ЩО САМЕ будуємо. Записується у frontmatter   -->
-<!--           target_surfaces: [...] і гейтить §5 (один контейнер на поверхню) + усі       -->
-<!--           наступні стадії. Деривиться з PRD §1 «для кого» + §4 ролей. → _shared/surfaces.md -->
-<!-- 📌 Приклад: «Зберігати урок як таблицю блоків» — стовп, з якого виросло ADR-0001.    -->
+**Target surface(s) (the first decision — what's being built):** `[backend-service]`
 
-**Target surface(s) (the first decision — what's being built):** `<e.g. [backend-service, web-frontend]>`
-<!-- Mirror this list into the frontmatter `target_surfaces`. For each declared UI surface          -->
-<!-- (web-frontend / mobile-app / desktop-app) add a UI-architecture choice below (web → SSR/SPA/   -->
-<!-- hybrid; mobile → native/cross-platform). Multi-surface is usually an ADR (multi-module +       -->
-<!-- irreversible). The UI reuses the repo's existing design system / components / tokens from       -->
-<!-- architecture-map.md §Frontend — it does not design greenfield. → _shared/surfaces.md           -->
+Trade offers are new HTTP/JSON routes in the existing Fastify process. There is no UI, no worker and no CLI in
+the repo and the PRD asks for none, so there is no UI-architecture decision and no new deployable unit.
 
 **Top strategic choices (the seeds for ADRs):**
 
-1. **<e.g. Module isolation through events>** — <2-3 sentences rationale referencing Quality Goals and constraints>.
-2. **<e.g. Single-store persistence (Postgres)>** — <2-3 sentences>.
-3. **<e.g. UI-architecture: SPA consuming the backend API>** — <per declared UI surface; 2-3 sentences>.
+1. **Own trade offers in a new `trades` context** ([ADR-0001](./adr/0001-own-trade-offers-in-a-new-trades-context.md)).
+   A trade offer needs players and rooms from `lobby`, title deed owners from `board` and balances from `bank`.
+   A fifth context that takes those three apis keeps `board` and `bank` unaware of each other and keeps trading
+   apart from `turns`, which PRD §3 requires: offers are made and answered at any moment.
+2. **Run the exchange in one SQLite transaction around guarded commands of `board` and `bank`**
+   ([ADR-0002](./adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md)). The `trades` service
+   opens the transaction; `board` moves title deeds and `bank` moves money through their apis, and each command
+   refuses with `conflict` when its own rule is broken (the giver is no longer the owner, the payer lacks the
+   money). Any refusal rolls everything back and the offer stays a pending offer. This serves quality goals 1
+   and 2: nothing inside the transaction awaits, so two acceptances cannot interleave.
+3. **Identify the acting player by a player secret that `lobby` issues**
+   ([ADR-0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md)). The client sends the secret
+   as a bearer credential; `trades` asks `lobby` which player it belongs to and never trusts a player id named
+   in a request. This is what makes the three permission checks of PRD §6.1 enforceable, and it closes the first
+   open question of PRD §8. The mechanism itself is a prerequisite feature in `lobby`.
+4. **Derive expiry from the clock when an offer is read or answered** (inline, no ADR: reworking it takes under
+   three days and changes no contract between contexts). An offer row stores `expires_at`, its creation time
+   plus the offer lifetime of five minutes. An unanswered offer whose `expires_at` is not later than the
+   current time is an expired offer, wherever it is looked at: in the two lists, in an answer attempt, and in
+   the rule of one pending offer per proposer. Nothing writes an "expired" state and no timer runs, so there is
+   no gap between the lifetime running out and the offer being treated as expired (quality goal 3). The clock
+   is a dependency handed to `buildApp`, the system clock by default; tests pass one they control.
 
-Each tactical decision in later sections should be traceable to one of these strategic seeds. Tactical decisions that *contradict* a strategic choice are red flags — surface them in §11 Risks.
+Each tactical decision in later sections traces to one of these. A tactical decision that contradicts one is
+listed in §11.
 
 ## 5. Building block view
 
