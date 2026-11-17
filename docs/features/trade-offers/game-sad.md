@@ -15,26 +15,28 @@ target_surfaces: [backend-service]
 
 ## 1. Introduction and goals
 
-<!-- One paragraph: what players can do after this feature, from PRD §1-§2. Then three quality goals as
-QG-1..QG-3, each one line, each backed by a PRD §6 row. Money and title deed integrity come first whenever the
-feature moves them. Stakeholders are the glossary roles plus the game owner. -->
+After this feature a proposer can offer one recipient in the same room some of their title deeds and/or money
+for some of the recipient's. The recipient accepts or rejects the trade offer as a whole, or it becomes an
+expired offer after its offer lifetime of 5 minutes. On acceptance ownership, balances and room membership are
+checked again, and everything named changes hands at once or nothing does. Without trading a color group ends
+up in one hand only by luck and the first full games stall ([PRD](./game-prd.md) §1, §2).
 
 **Quality goals**
 
-1. QG-1 <one line>
-2. QG-2 <one line>
-3. QG-3 <one line>
+1. QG-1 Integrity: an exchange happens in full or not at all; money in a room is unchanged by any exchange and
+   every title deed has exactly one owner after every action (PRD §6 rows 3, 4).
+2. QG-2 One winner: when two players act on the same thing at once, exactly one wins, 100 of 100 runs (PRD §6
+   row 5).
+3. QG-3 Speed: p95 of one write action (propose, accept, reject) ≤ 5 ms; p95 of one list action, 300 rows
+   ≤ 10 ms (PRD §6 rows 1, 2).
 
 **Stakeholders**
 
 | Role | Interest |
 |---|---|
-| <glossary role> | <what they do in this feature> |
+| proposer | creates a trade offer, sees every offer they sent with its state |
+| recipient | sees pending offers addressed to them, accepts or rejects each as a whole |
 | game owner | approves this document and the ADRs |
-
-Decisions kept against the critic:
-
-<!-- One line per finding the owner kept, with their reason. Delete the heading if none. -->
 
 ## 2. Constraints
 
