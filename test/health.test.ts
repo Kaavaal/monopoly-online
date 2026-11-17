@@ -12,6 +12,16 @@ describe('GET /health', () => {
   });
 });
 
+describe('GET /health with an injected clock', () => {
+  it('answers 200 { ok: true } when the app is built with a fixed clock', async () => {
+    const { app } = makeTestApp({ clock: () => new Date('2026-01-01T00:00:00.000Z') });
+    const res = await app.inject({ method: 'GET', url: '/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ ok: true });
+    await app.close();
+  });
+});
+
 describe('migrations', () => {
   it('creates the schema_migrations table', () => {
     const { db } = makeTestApp();
