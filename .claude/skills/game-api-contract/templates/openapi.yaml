@@ -1,0 +1,161 @@
+# Derived by /game-api-contract <slug>. Change a source, then run /game-api-contract <slug> --reconcile.
+#   fields and constraints <- game-data-model.md, domain constants
+#   operations             <- game-sad.md §6 flows, game-prd.md user stories
+#   refusals               <- game-sad.md §6 alt branches, game-prd.md refusal table
+openapi: 3.1.0
+
+info:
+  title: <Feature> API
+  version: 0.1.0
+  description: |
+    <why this API exists, one paragraph from game-prd.md §1>
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+security:
+  - BearerAuth: []
+
+paths:
+  # One block per §6 flow. No version prefix, camelCase keys, every schema through $ref.
+  /<resources>:
+    post:
+      summary: <flow name from §6>
+      description: |
+        <US-NN>. <what changes, in one or two sentences>
+
+        Refusals in the order they are checked, first match wins:
+
+        1. `unauthorized`: no player secret or an unknown one.
+        2. `<context>.<reason>` (`<kind>`): <alt branch> (<AC-NN>).
+      operationId: create<Resource>
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/<Resource>Create" }
+            examples:
+              <happyCase>:
+                value: { <field>: "<placeholder>" }
+      responses:
+        "201":
+          description: <what comes back> (<AC-NN>).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/<Resource>" }
+              examples:
+                created: { $ref: "#/components/examples/<Resource>" }
+        "400":
+          description: The request is wrong on its own (<AC-NN>).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                # One named example per alt branch; the name says the branch.
+                <branchName>:
+                  summary: <AC-NN>
+                  value:
+                    error: { code: <context>.<reason>, message: "<message from the PRD refusal table>" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: The current state does not allow it (<AC-NN>).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                <branchName>:
+                  summary: <AC-NN>
+                  value:
+                    error: { code: <context>.<reason>, message: "<message>" }
+
+    get:
+      summary: <list flow from §6>
+      description: <US-NN>. Ordered by `createdAt`, then `id`.
+      operationId: list<Resources>
+      responses:
+        "200":
+          description: Possibly none.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/<Resource>List" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: The opaque player secret that `lobby` issues (game-adr/0003). Not a JWT.
+
+  parameters:
+    <Resource>Id:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+
+  responses:
+    Unauthorized:
+      description: No player secret, or an unknown one. Checked before anything else.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            noSecret:
+              value:
+                error: { code: unauthorized, message: "a player secret is required" }
+
+  examples:
+    <Resource>:
+      value:
+        id: "11111111-1111-4111-8111-111111111111"
+        createdAt: "2026-01-01T10:00:00.000Z"
+
+  schemas:
+    # src/shared/http.ts renders every refusal as { error: { code, message } }.
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error: { $ref: "#/components/schemas/ErrorBody" }
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          description: |
+            `<context>.<reason>` from the PRD refusal table (game-adr/0004); `unauthorized` from `lobby`. The
+            status comes from the kind in src/shared/errors.ts.
+          type: string
+          enum: [unauthorized, <context>.<reason>]
+        message:
+          description: Says what to correct; names the title deed, the amount or the side.
+          type: string
+
+    # One schema per table the feature exposes. A comment names the table; every property has an origin.
+    <Resource>:
+      type: object
+      required: [id, createdAt]
+      additionalProperties: false
+      properties:
+        id: { type: string, format: uuid }
+        # <column>, bound from <domain constant or data-model note>
+        <field>: { type: string, maxLength: <N> }
+        # <column> NULL
+        <nullableField>: { type: [string, "null"] }
+        createdAt: { type: string, format: date-time }
+
+    <Resource>Create:
+      type: object
+      required: [<field>]
+      additionalProperties: false
+      properties:
+        <field>: { type: string, maxLength: <N> }
+
+    <Resource>List:
+      type: array
+      items: { $ref: "#/components/schemas/<Resource>" }
