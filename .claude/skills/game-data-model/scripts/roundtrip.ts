@@ -17,20 +17,21 @@ db.exec(`INSERT INTO players (id, name, token, created_at) VALUES ('p1', 'Test U
 INSERT INTO properties (id, "name", "color_group", "price", "rent", "owner_id", created_at)
 VALUES ('d1', 'Test Deed', 'brown', 60, 2, 'p1', '2026-01-01T00:00:00.000Z');`);
 
-// A staged up file carries its live name, NNNN_<context>_<name>.sql; its down is NNNN_<context>_<name>.down.sql.
+// A staged up file carries its live name, NNNN_<context>_<name>.sql (the SDLC plugin's <ts>_<name>.up.sql works
+// too); its down is <name>.down.sql.
 const pairs = readdirSync(dir)
   .filter((f) => f.endsWith('.sql') && !f.endsWith('.down.sql'))
   .sort()
-  .map((f) => f.slice(0, -'.sql'.length));
+  .map((up) => ({ up, name: up.replace(/(\.up)?\.sql$/, '') }));
 if (pairs.length === 0) throw new Error(`${dir}: no staged migrations`);
-for (const name of pairs) {
+for (const { name } of pairs) {
   if (!existsSync(join(dir, `${name}.down.sql`))) throw new Error(`${name}: no .down.sql`);
 }
 
-function run(name: string, way: 'up' | 'down'): void {
+function run({ up, name }: { up: string; name: string }, way: 'up' | 'down'): void {
   db.exec('BEGIN');
   try {
-    db.exec(readFileSync(join(dir, way === 'up' ? `${name}.sql` : `${name}.down.sql`), 'utf8'));
+    db.exec(readFileSync(join(dir, way === 'up' ? up : `${name}.down.sql`), 'utf8'));
     db.exec('COMMIT');
   } catch (err) {
     if (db.isTransaction) db.exec('ROLLBACK');
