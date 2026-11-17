@@ -32,7 +32,7 @@ T1–T6 need none of them and can start now. T14 depends on them only through T1
 
 ## Task map
 
-Solid arrows are `deps`, the same edges as [tasks.json](./tasks.json). A dotted arrow marks the first task a
+Solid arrows are `deps`, the same edges as [tasks.json](../tasks.json). A dotted arrow marks the first task a
 prerequisite blocks.
 
 ```mermaid
@@ -80,7 +80,7 @@ Parallel starts: T1, T3, T4 and T5. T10 and T11 do not depend on each other, but
 
 ## Tasks
 
-See [tracker.md](./tracker.md) for status. Machine contract: [tasks.json](./tasks.json).
+See [tracker.md](./tracker.md) for status. Machine contract: [tasks.json](../tasks.json).
 
 | # | Task | Layer | Blocked by | ACs | DoD (short) |
 |---|---|---|---|---|---|
