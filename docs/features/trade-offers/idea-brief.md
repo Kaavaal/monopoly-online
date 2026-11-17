@@ -231,7 +231,7 @@ withdrawal, no arrival signal. Prerequisites: money accounts, rooms, a fixed boa
 
 ## Related
 
-- [CONTEXT.md](CONTEXT.md) — glossary: color group, expired offer, proposer, recipient, room, trade offer
+- [CONTEXT.md](CONTEXT.md) — glossary, invariants, refusal names, the room filter, out of scope
 - [board-property.md](../board-property.md) — title deeds, the nearest shipped feature
 - [ARCHITECTURE.md](../../../ARCHITECTURE.md) — context map
 

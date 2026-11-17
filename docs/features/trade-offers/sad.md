@@ -584,7 +584,8 @@ No architectural decision was left open in this pass. The open questions of PRD 
 ## 12. Glossary
 
 Domain terms come from [CONTEXT.md](./CONTEXT.md), which stays the canonical source. The last four rows are
-terms this document introduced; they are not in CONTEXT.md yet and should be added with `/sdlc:fix-term`.
+terms this document introduced. Acting player is now in CONTEXT.md; player secret, exchange and guarded command
+name how the design works, so they stay here.
 
 | Term | Meaning |
 |---|---|
