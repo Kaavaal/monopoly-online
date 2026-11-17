@@ -97,7 +97,7 @@ const hinted = [...new Set(spec.tasks.flatMap((t) => t.files_hint))];
 const dirty = execFileSync('git', ['-C', root, 'status', '--porcelain', '--', pkg, ...hinted], { encoding: 'utf8' }).trimEnd();
 
 const now = new Date();
-const stamp = now.toISOString().slice(0, 16).replace(':', '');
+const stamp = now.toISOString().slice(0, 19).replaceAll(':', '');
 const out = [
   `# Spec drift, ${now.toISOString().slice(0, 16)}Z`,
   '',
