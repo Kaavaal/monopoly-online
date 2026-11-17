@@ -185,7 +185,7 @@ part of this one. The shapes are indicative; the contract stage fixes them.
 | `board` | whether a title deed exists, its owner and its room | AC-02, AC-06 |
 | `board` | guarded command: move title deeds between two players, refusing when a giver is not the owner | AC-07, AC-16, AC-19 |
 | `bank` | the balance of a player | AC-06 |
-| `bank` | guarded command: move money between two players, refusing when a payer lacks it | AC-07, AC-17 |
+| `bank` | guarded command: move money between two players, refusing when a payer lacks it | AC-07, AC-17, AC-19b |
 
 `turns` takes no part. `board` already calls `lobby` to check that an owner is a known player; that call is
 unchanged and not drawn.
