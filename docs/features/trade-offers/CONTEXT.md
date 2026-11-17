@@ -37,7 +37,7 @@ The names follow [game-adr/0004](./game-adr/0004-shared-carry-the-dotted-refusal
 |---|---|---|---|
 | `trades.not_a_trade` | a side gives nothing, a title deed is named twice, the recipient is the proposer | AC-02, AC-03, AC-05 | AC-02 |
 | `trades.unknown_player_or_deed` | the recipient or a title deed does not exist | AC-02 | AC-03 |
-| `trades.recipient_not_in_room` | the recipient is of another room | AC-05 | AC-05 |
+| `trades.recipient_not_in_room` | the recipient, or a title deed named in the offer, is of another room | AC-05 | AC-05 |
 | `trades.not_yours_to_give` | at proposal, a side gives a title deed it does not own or more money than it has | AC-06 | AC-04 |
 | `trades.pending_offer_exists` | the proposer already has a pending offer | AC-04 | AC-06 |
 | `trades.offer_not_found` | no such offer, or the acting player is neither of its sides; one message for both | AC-14 | AC-16 |
@@ -46,7 +46,7 @@ The names follow [game-adr/0004](./game-adr/0004-shared-carry-the-dotted-refusal
 | `trades.offer_expired` | the offer's lifetime has run out | AC-12 | AC-13 |
 | `trades.player_left_room` | at acceptance, a side is no longer in the room | AC-18 | AC-10 |
 | `board.deed_owner_changed` | at acceptance, a giver no longer owns a title deed; owned by `board` | AC-16, AC-19 | AC-08, AC-11 |
-| `bank.insufficient_funds` | at acceptance, a payer lacks the money; owned by `bank` | AC-17 | AC-09, AC-11b |
+| `bank.insufficient_funds` | at acceptance, a payer lacks the money; owned by `bank` | AC-17, AC-19b | AC-09, AC-11b |
 
 Two refusals have no name yet: a proposer other than the acting player (AC-06b) and a request that does not prove who is acting, which arrives with the `lobby` prerequisite ([ADR-0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md)).
 
