@@ -75,27 +75,31 @@ export function offerStateAt(offer: Pick<TradeOffer, 'state' | 'expiresAt'>, now
   return offer.state;
 }
 
+/** Checks in the order of the contract: the amounts, a title deed named twice, a side that gives nothing. */
 export function validateGives(proposerGives: OfferSide, recipientGives: OfferSide): void {
-  if (!Number.isInteger(proposerGives.money) || proposerGives.money < MONEY_MIN) {
-    throw invalid(`the money the proposer gives must be an integer of at least ${MONEY_MIN}`);
-  }
-  if (!Number.isInteger(recipientGives.money) || recipientGives.money < MONEY_MIN) {
-    throw invalid(`the money the recipient gives must be an integer of at least ${MONEY_MIN}`);
+  const sides = [
+    { who: 'proposer', gives: proposerGives },
+    { who: 'recipient', gives: recipientGives },
+  ];
+
+  for (const { who, gives } of sides) {
+    if (!Number.isInteger(gives.money) || gives.money < MONEY_MIN) {
+      throw invalid(`the money the ${who} gives must be an integer of at least ${MONEY_MIN}`);
+    }
   }
 
   const named = new Set<string>();
-  for (const propertyId of [...proposerGives.propertyIds, ...recipientGives.propertyIds]) {
+  for (const propertyId of sides.flatMap(({ gives }) => gives.propertyIds)) {
     if (named.has(propertyId)) {
       throw invalid(`title deed ${propertyId} is named twice; a trade offer names a title deed once`);
     }
     named.add(propertyId);
   }
 
-  if (proposerGives.propertyIds.length === 0 && proposerGives.money === 0) {
-    throw invalid('the proposer gives nothing; each side must give at least one title deed or some money');
-  }
-  if (recipientGives.propertyIds.length === 0 && recipientGives.money === 0) {
-    throw invalid('the recipient gives nothing; each side must give at least one title deed or some money');
+  for (const { who, gives } of sides) {
+    if (gives.propertyIds.length === 0 && gives.money === 0) {
+      throw invalid(`the ${who} gives nothing; each side must give at least one title deed or some money`);
+    }
   }
 }
 
