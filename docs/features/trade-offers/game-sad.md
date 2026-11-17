@@ -146,7 +146,7 @@ the data model.
 | `trades` (new) | trade offers | — | `lobby`, `board`, `bank` |
 | `lobby` | players, rooms | nothing | nothing |
 | `board` | tiles, title deeds | `lobby` | `lobby` |
-| `bank` | player accounts, transfers | nothing (planned: `lobby`) | `lobby` |
+| `bank` | player accounts, transfers | nothing (planned: `lobby`) | nothing (planned: `lobby`, added by its prerequisite) |
 
 Creation order in `src/app.ts` after this feature: lobby, board, bank, turns, trades. Every arrow from `trades`
 points to a context created before it; nothing points to `trades`.
