@@ -71,20 +71,24 @@ up in one hand only by luck and the first full games stall ([PRD](./game-prd.md)
 
 ## 3. Context and scope
 
-<!-- Two or three sentences on who talks to the backend and where trust ends (the HTTP interface: neither
-the body nor "I am player X" is trusted without a check). Actors are glossary roles only. External systems:
-none today; if none, say so as a decision. -->
+A proposer and a recipient reach the backend over HTTP with JSON; nothing else talks to it. Trust ends at the
+HTTP interface: neither the body nor "I am player X" is believed without a check, and what a player may see is
+decided inside the backend (PRD §8, AC-15, AC-16). The same player is a proposer in one trade offer and a
+recipient in another; the diagram shows the two roles, not two kinds of account.
 
-**External systems**: <none, as a decision of this version | name and why>
+**External systems**: none, as a decision of this version. The expiry of an offer needs no scheduler or queue,
+and no signal reaches players (PRD §3).
 
 ```mermaid
 C4Context
-    title <feature> — System Context
+    title trade offers — System Context
 
-    Person(<role>, "<glossary role>", "<what they do>")
+    Person(proposer, "proposer", "Creates a trade offer, sees the offers they sent")
+    Person(recipient, "recipient", "Sees pending offers addressed to them, accepts or rejects")
     System(game, "monopoly-online backend", "One Node.js process, one SQLite file")
 
-    Rel(<role>, game, "<what they do>", "HTTP, JSON")
+    Rel(proposer, game, "Creates and lists trade offers", "HTTP, JSON")
+    Rel(recipient, game, "Lists, accepts, rejects trade offers", "HTTP, JSON")
 ```
 
 ## 4. Solution strategy
