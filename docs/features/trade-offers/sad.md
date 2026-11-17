@@ -274,6 +274,204 @@ branch (ADR-0002).
 **Critical flow 2:** not seeded in this pass. The feature has no asynchronous step and no event; the other
 flows are synchronous and are drawn by `complete-sequence-diagrams`.
 
+The flows below were added by `complete-sequence-diagrams`. They use the participants of critical flow 1. In
+every flow a request without a player secret, or with an unknown one, is refused as `unauthorized` before
+anything else (§8); that refusal is not drawn.
+
+### Propose a trade offer
+
+```mermaid
+sequenceDiagram
+    actor proposer
+    participant trades as trades context
+    participant lobby as lobby context
+    participant board as board context
+    participant bank as bank context
+    participant sqlite as SQLite database file
+
+    Note over proposer,trades: Precondition - the proposer is a player in a room
+    proposer->>trades: make a trade offer to one player, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    alt the offer names a proposer other than the acting player
+        trades-->>proposer: refused, a trade offer can be made only in their own name
+    else an amount is negative or not a whole number, or a title deed is named twice
+        trades-->>proposer: refused, with the part of the offer to correct
+    else one side gives neither a title deed nor money
+        trades-->>proposer: refused, each side must give at least one title deed or some money
+    else the offer is well formed
+        trades->>sqlite: load the unanswered offer of the proposer whose lifetime has not run out
+        sqlite-->>trades: that offer or none
+        trades->>lobby: does the recipient exist, and are the two players in the same room
+        lobby-->>trades: yes or no
+        trades->>board: the owner and the room of every title deed named in the offer
+        board-->>trades: owners and rooms, or no such title deed
+        trades->>bank: the balance of both players
+        bank-->>trades: the two balances
+        alt the proposer already has a pending offer
+            trades-->>proposer: refused, one pending offer at a time, with when the current one runs out
+        else the recipient or a title deed does not exist
+            trades-->>proposer: refused, with the part of the offer to correct
+        else the recipient is the proposer, or a player or a title deed is of another room
+            trades-->>proposer: refused, a trade offer is possible only between two different players of the same room
+        else a side gives a title deed it does not own, or more money than it has
+            trades-->>proposer: refused, with the title deed or the amount the named side cannot give
+        else every check passed
+            trades->>sqlite: write the pending offer with its expires_at
+            Note over trades,sqlite: persists trade offer (proposer, recipient, what each side gives, expires_at)
+            trades-->>proposer: pending offer, with what each side gives and when the offer lifetime runs out
+        end
+    end
+    Note over proposer,trades: Postcondition - no title deed and no money changed hands
+```
+
+A rejected, accepted or expired offer does not count as the proposer's pending offer, so the same offer made
+again right after a rejection is recorded as a new pending offer with its own offer lifetime (AC-10b). The
+order of the refusals when several apply at once is not fixed here; the contract stage fixes it.
+
+### Reject a trade offer
+
+```mermaid
+sequenceDiagram
+    actor recipient
+    participant trades as trades context
+    participant lobby as lobby context
+    participant sqlite as SQLite database file
+
+    Note over recipient,trades: Precondition - a trade offer addressed to the recipient
+    recipient->>trades: reject the trade offer, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    trades->>sqlite: load the offer
+    sqlite-->>trades: the offer or none
+    alt no such offer, or the acting player is neither its proposer nor its recipient
+        trades-->>recipient: refused, no such offer
+    else the acting player is its proposer
+        trades-->>recipient: refused, only the recipient can answer
+    else the offer is accepted, rejected or expired
+        trades-->>recipient: refused, with how the offer ended
+    else the offer is a pending offer
+        trades->>sqlite: mark the offer rejected
+        Note over trades,sqlite: persists trade offer (state rejected)
+        trades-->>recipient: rejected, no title deed and no money changed hands
+    end
+    Note over recipient,trades: Postcondition - after a rejection the proposer can make a new offer at once
+```
+
+### Let an unanswered offer expire
+
+```mermaid
+sequenceDiagram
+    actor proposer
+    participant trades as trades context
+    participant lobby as lobby context
+    participant sqlite as SQLite database file
+
+    Note over proposer,trades: Precondition - the proposer has a pending offer and the recipient does not answer
+    Note over trades,sqlite: the offer lifetime runs out, no timer runs and nothing is written
+    proposer->>trades: list the offers I made, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    trades->>sqlite: read the offers made by the acting player
+    sqlite-->>trades: the offers, this one unanswered
+    trades->>trades: compare its expires_at with the clock
+    trades-->>proposer: the offer is shown as an expired offer
+    proposer->>trades: make a new trade offer
+    trades->>sqlite: load the unanswered offer of the proposer whose lifetime has not run out
+    sqlite-->>trades: none
+    Note over proposer,trades: the new offer continues as in Propose a trade offer
+    Note over proposer,trades: Postcondition - no title deed and no money changed hands, the expired offer row is unchanged
+```
+
+An answer to an expired offer takes the "accepted, rejected or expired" branch of the accept and reject flows
+(AC-12).
+
+### List pending offers addressed to me
+
+```mermaid
+sequenceDiagram
+    actor recipient
+    participant trades as trades context
+    participant lobby as lobby context
+    participant sqlite as SQLite database file
+
+    Note over recipient,trades: Precondition - trade offers addressed to the recipient may exist
+    recipient->>trades: list the pending offers addressed to me, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    trades->>sqlite: read the unanswered offers addressed to the acting player whose lifetime has not run out
+    Note over trades,sqlite: reads trade offers by recipient, state and expires_at (informs data-model indexes)
+    sqlite-->>trades: the pending offers, possibly none
+    trades-->>recipient: each pending offer with its proposer, what each side gives and when its offer lifetime runs out
+    Note over recipient,trades: Postcondition - answered and expired offers, and offers addressed to other players, are not shown
+```
+
+### List the offers I made
+
+```mermaid
+sequenceDiagram
+    actor proposer
+    participant trades as trades context
+    participant lobby as lobby context
+    participant sqlite as SQLite database file
+
+    Note over proposer,trades: Precondition - the proposer may have made trade offers
+    proposer->>trades: list the offers I made, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    trades->>sqlite: read every offer made by the acting player
+    Note over trades,sqlite: reads trade offers by proposer (informs data-model indexes)
+    sqlite-->>trades: the offers, possibly none
+    trades->>trades: an unanswered offer whose lifetime has run out is an expired offer
+    trades-->>proposer: each offer with its recipient, what each side gives, its state and, for a pending offer, when its offer lifetime runs out
+    Note over proposer,trades: Postcondition - offers made by other players are not shown
+```
+
+### Coverage: US/AC → flows
+
+| ID | Realized by (§6 heading) | How | Note |
+|---|---|---|---|
+| US-01 | `Propose a trade offer` | flow | |
+| US-02 | `Critical flow 1: accept a trade offer` | flow | |
+| US-03 | `Reject a trade offer` | flow | |
+| US-04 | `Let an unanswered offer expire` | flow | |
+| US-05 | `List pending offers addressed to me` | flow | |
+| US-06 | `List the offers I made` | flow | |
+| US-07 | `Critical flow 1: accept a trade offer` | flow | the inner `alt` after the re-check |
+| AC-01 | `Propose a trade offer` | flow | |
+| AC-02 | `Propose a trade offer` | branch | `else an amount is negative or not a whole number, or a title deed is named twice` and `else the recipient or a title deed does not exist` |
+| AC-03 | `Propose a trade offer` | branch | `else one side gives neither a title deed nor money` |
+| AC-04 | `Propose a trade offer` | branch | `alt the proposer already has a pending offer` |
+| AC-05 | `Propose a trade offer` | branch | `else the recipient is the proposer, or a player or a title deed is of another room` |
+| AC-06 | `Propose a trade offer` | branch | `else a side gives a title deed it does not own, or more money than it has` |
+| AC-06b | `Propose a trade offer` | branch | `alt the offer names a proposer other than the acting player` |
+| AC-07 | `Critical flow 1: accept a trade offer` | flow | |
+| AC-08 | `Critical flow 1: accept a trade offer`, `Reject a trade offer` | branch | `else the acting player is its proposer` |
+| AC-09 | `Critical flow 1: accept a trade offer`, `Reject a trade offer` | branch | `else the offer is accepted, rejected or expired` |
+| AC-10 | `Reject a trade offer` | flow | |
+| AC-10b | `Propose a trade offer` | flow | the pending check counts no rejected offer, see the paragraph under the diagram |
+| AC-11 | `Let an unanswered offer expire` | flow | |
+| AC-12 | `Critical flow 1: accept a trade offer`, `Reject a trade offer` | branch | `else the offer is accepted, rejected or expired` |
+| AC-13 | `List pending offers addressed to me` | flow | |
+| AC-14 | `Critical flow 1: accept a trade offer`, `Reject a trade offer` | branch | `alt no such offer, or the acting player is neither its proposer nor its recipient`. Seeing: both list flows read only the offers of the acting player |
+| AC-15 | `List the offers I made` | flow | |
+| AC-16 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
+| AC-17 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
+| AC-18 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
+| AC-19 | `Critical flow 1: accept a trade offer` | branch | the second acceptance takes the same refused branch, see the paragraph under the diagram |
+
+Coverage: 7/7 user stories · 21/21 ACs — 0 non-runtime N/A.
+
+**Flags:**
+- Participants are the contexts of §5 (`trades`, `lobby`, `board`, `bank`, the SQLite file), as in critical
+  flow 1, not the generic vocabulary of the stage. Chosen by the owner for one look across §6. No participant
+  outside §5 was added.
+- The order of the refusals in `Propose a trade offer` when several apply at once is open; for the contract
+  stage (`/sdlc:api-forge`).
+- Reads that the data model has to serve: the unanswered, unexpired offer of a proposer (propose); offers by
+  recipient, state and `expires_at` (incoming list); offers by proposer (outgoing list).
+- No decision worth an ADR came up.
+
 ## 7. Deployment view
 
 <!-- N/A: the feature reuses the existing deployment unit; no change to replicas, scaling or monitoring -->
