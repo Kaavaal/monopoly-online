@@ -9,6 +9,7 @@ updated_at: "2026-11-17"
 
 - accepted offer — a trade offer the recipient accepted and whose exchange took place in full: every title deed and all money named in it changed hands at once; it cannot be answered again. NOT an acceptance attempt (an attempt that fails the re-check of ownership and balances changes nothing and does not make the offer accepted).
 - acting player — the player a request is made by, as the player secret proves it; the only player who can be a proposer or answer as a recipient. NOT a player named in the request (an id in a request body names someone, it never says who is acting).
+- color group — the fixed set of title deeds of one color, as defined by the rules of the game (two or three deeds per color). NOT complete color group (a color group exists whoever owns its deeds; it is complete only when one player owns all of them).
 - expired offer — a trade offer the recipient did not answer within its lifetime; it can no longer be accepted or rejected, and no title deeds or money change hands. NOT rejected offer (a rejected offer was explicitly refused by the recipient; an expired offer ended with no decision from them).
 - offer lifetime — the fixed time a trade offer stays pending after the proposer creates it, five minutes for every offer; once it runs out the offer is an expired offer. NOT a turn timer (a lifetime belongs to one offer and runs whatever else happens in the room; it does not limit a player's turn).
 - pending offer — a trade offer the recipient has not answered and whose lifetime has not run out; it is the only kind of trade offer that can be accepted or rejected. NOT open offer (the idea brief says "open offer" for the same thing; pending offer is the one canonical name).
@@ -30,24 +31,24 @@ updated_at: "2026-11-17"
 
 ## Sentinel errors
 
-The names follow [game-adr/0004](./game-adr/0004-shared-carry-the-dotted-refusal-code-in-the-code-field.md). `contracts/openapi.yaml` sends only the kind in `code`; `game-contracts/openapi.yaml` sends the name. Three kinds differ between the two contracts (marked). AC numbers are those of [PRD.md](./PRD.md) §5.
+The names follow [game-adr/0004](./game-adr/0004-shared-carry-the-dotted-refusal-code-in-the-code-field.md); how a name maps to a status is the contracts' business. AC numbers are those of [PRD.md](./PRD.md) §5. A request that breaks the shape of the contract (a negative or fractional amount, a malformed id) is refused before any rule runs and carries no name.
 
-| Name | When | Kind | AC |
-|---|---|---|---|
-| `trades.not_a_trade` | a side gives nothing, a deed is named twice, an amount is negative or fractional, the recipient is the proposer | invalid | AC-02, AC-03, AC-05 |
-| `trades.unknown_player_or_deed` | the recipient or a title deed does not exist | invalid | AC-02 |
-| `trades.recipient_not_in_room` | the recipient or a title deed is of another room | conflict (game: invalid) | AC-05 |
-| `trades.not_yours_to_give` | at proposal, a side gives a deed it does not own or more money than it has | conflict (game: invalid) | AC-06 |
-| `trades.pending_offer_exists` | the proposer already has a pending offer | conflict | AC-04 |
-| `trades.offer_not_found` | no such offer, or the acting player is neither of its sides; one message for both | not_found | AC-14 |
-| `trades.only_recipient_answers` | the proposer tries to accept or reject their own offer | conflict (game: invalid) | AC-08 |
-| `trades.offer_already_answered` | the offer is accepted or rejected | conflict | AC-09 |
-| `trades.offer_expired` | the offer's lifetime has run out | conflict | AC-12 |
-| `trades.player_left_room` | at acceptance, a side is no longer in the room | conflict | AC-18 |
-| `board.deed_owner_changed` | at acceptance, a giver no longer owns a title deed; owned by `board` | conflict | AC-16, AC-19 |
-| `bank.insufficient_funds` | at acceptance, a payer lacks the money; owned by `bank` | conflict | AC-17 |
+| Name | When | AC |
+|---|---|---|
+| `trades.not_a_trade` | a side gives nothing, a title deed is named on both sides, the recipient is the proposer | AC-02, AC-03, AC-05 |
+| `trades.unknown_player_or_deed` | the recipient or a title deed does not exist | AC-02 |
+| `trades.recipient_not_in_room` | the recipient is of another room; on the plugin track also a title deed of another room | AC-05 |
+| `trades.not_yours_to_give` | at proposal, a side gives a title deed it does not own or more money than it has | AC-06 |
+| `trades.pending_offer_exists` | the proposer already has a pending offer | AC-04 |
+| `trades.offer_not_found` | no such offer, or the acting player is neither of its sides; one message for both | AC-14 |
+| `trades.only_recipient_answers` | the proposer tries to accept or reject their own offer | AC-08 |
+| `trades.offer_already_answered` | the offer is accepted or rejected | AC-09 |
+| `trades.offer_expired` | the offer's lifetime has run out | AC-12 |
+| `trades.player_left_room` | at acceptance, a side is no longer in the room | AC-18 |
+| `board.deed_owner_changed` | at acceptance, a giver no longer owns a title deed; owned by `board` | AC-16, AC-19 |
+| `bank.insufficient_funds` | at acceptance, a payer lacks the money; owned by `bank` | AC-17 |
 
-Two refusals have no name yet: a proposer other than the acting player (AC-06b, `invalid`) and a missing or unknown player secret (`unauthorized`, arrives with the `lobby` prerequisite, [ADR-0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md)).
+Two refusals have no name yet: a proposer other than the acting player (AC-06b) and a request that does not prove who is acting, which arrives with the `lobby` prerequisite ([ADR-0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md)).
 
 ## Org-filter invariant
 
