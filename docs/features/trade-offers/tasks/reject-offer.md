@@ -29,6 +29,7 @@ US-03, and the answer guards that accept reuses. Derives from [PRD §5 AC-08, AC
 - [ ] test AC-08: the proposer rejects → 409, the offer stays pending
 - [ ] tests AC-09 and AC-12: a rejected and an expired offer → 409 that says how it ended
 - [ ] test AC-14: a third player and an unknown id get the same 404 body
+- [ ] test: a malformed id → 400 `invalid`, nothing changes
 - [ ] test AC-18: a recipient who left the room still finds the offer in their pending list and can reject it
 - [ ] test: a refusal that fails several checks returns the first in the order of PRD §5
 - [ ] `pnpm check` green

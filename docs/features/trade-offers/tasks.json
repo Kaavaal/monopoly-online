@@ -245,7 +245,7 @@
         "AC-14",
         "AC-18"
       ],
-      "dod": "POST /trade-offers/{id}/reject returns 200 with a rejected offer for AC-10 and for a recipient who left the room (AC-18), lets the same offer be made again at once for AC-10b, and returns the 404 or 409 of the contract for AC-08, AC-09, AC-12 and AC-14, each in an HTTP test.",
+      "dod": "POST /trade-offers/{id}/reject returns 200 with a rejected offer for AC-10 and for a recipient who left the room (AC-18), lets the same offer be made again at once for AC-10b, and returns the 400 of the contract for a malformed id and the 404 or 409 for AC-08, AC-09, AC-12 and AC-14, each in an HTTP test.",
       "files_hint": [
         "src/trades/app/service.ts",
         "src/trades/infra/http/routes.ts",
@@ -270,7 +270,7 @@
         "AC-17",
         "AC-18"
       ],
-      "dod": "POST /trade-offers/{id}/accept moves every title deed and all money for AC-07; for AC-16, AC-17 and AC-18 (either side left the room) returns 409 with owners, balances and the pending state unchanged; gives the answer refusals of AC-08, AC-09, AC-12 and AC-14; and awaits nothing inside the transaction, each in an HTTP test.",
+      "dod": "POST /trade-offers/{id}/accept moves every title deed and all money for AC-07; for AC-16, AC-17 and AC-18 (either side left the room) returns 409 with owners, balances and the pending state unchanged; gives the answer refusals of a malformed id, AC-08, AC-09, AC-12 and AC-14; and awaits nothing inside the transaction, each in an HTTP test.",
       "files_hint": [
         "src/trades/app/service.ts",
         "src/trades/infra/http/routes.ts",

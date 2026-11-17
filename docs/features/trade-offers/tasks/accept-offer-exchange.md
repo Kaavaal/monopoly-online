@@ -30,6 +30,7 @@ US-02 and US-07, the flow the three quality goals are about. Derives from [PRD �
 - [ ] test AC-17: a side lacks the money → 409 naming the side, nothing moved, still pending
 - [ ] test AC-18: the proposer or the recipient left the room → 409, nothing moved, still pending
 - [ ] tests AC-08, AC-09, AC-12 and AC-14 on the accept route, with the bodies of T11
+- [ ] test: a malformed id → 400 `invalid`, nothing changes
 - [ ] test: a refusal that fails several checks returns the first in the order of PRD §5
 - [ ] no `await` between the start and the end of the transaction
 - [ ] `pnpm check` green
