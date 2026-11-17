@@ -8,7 +8,7 @@ acs: ["AC-07", "AC-19", "AC-19b"]
 files_hint: ["src/shared/db.ts", "test/shared/db.test.ts"]
 owner: "Kaavaal"
 estimate: "S"
-status: "todo"
+status: "done"
 ---
 
 # T3 — Add the transaction helper to `src/shared/db.ts`
@@ -24,11 +24,11 @@ The exchange writes in three contexts and must happen in full or not at all. Der
 
 ## Definition of Done
 
-- [ ] test: the body returns → the write is visible after the call
-- [ ] test: the body throws after a write → the write is gone and the same error leaves the helper
-- [ ] test: a nested call that throws rolls the outer transaction back as a whole
-- [ ] the body type is synchronous: handing it an async function does not compile
-- [ ] `pnpm check` green
+- [x] test: the body returns → the write is visible after the call
+- [x] test: the body throws after a write → the write is gone and the same error leaves the helper
+- [x] test: a nested call that throws rolls the outer transaction back as a whole
+- [x] the body type is synchronous: handing it an async function does not compile
+- [x] `pnpm check` green
 
 ## Notes
 
