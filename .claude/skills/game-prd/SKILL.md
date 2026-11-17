@@ -51,7 +51,9 @@ directly. State names in §9 must be glossary terms.
 
 ### 3. Draft
 
-Fill `templates/PRD-template.md` in memory. Sources: §1–§3 and §7 from the brief, roles from the glossary,
+Fill `templates/PRD-template.md` in memory. §1–§8 are the usual eight sections, with fair play in place of the
+generic security block; §9 states and §10 refusals are what this backend adds; open questions close the
+document as §11 so the two additions sit next to the AC they serve. Sources: §1–§3 and §7 from the brief, roles from the glossary,
 §9 states from the glossary, refusal kinds from the reference context. Every brief edge case either becomes
 an AC or a Non-goal with its reason.
 
