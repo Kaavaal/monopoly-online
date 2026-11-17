@@ -25,7 +25,7 @@ exchange. It is decided now because the contract stage needs to know where a cli
 
 ## Drivers
 
-- PRD §10.2: 12 dotted codes, three of them owned by `board` and `bank`.
+- PRD §10.2: 12 dotted codes, two of them owned by `board` and `bank`.
 - Repo rule: refusals leave domain and app code as `notFound` / `conflict` / `invalid` from
   `src/shared/errors.ts` (`CLAUDE.md`).
 - Repo rule: one error shape for every route, `{ error: { code, message } }` (`src/shared/http.ts`).
@@ -35,9 +35,7 @@ exchange. It is decided now because the contract stage needs to know where a cli
 
 1. **An optional code on the three factories**: `conflict(message, code)` and its two siblings put the dotted
    code into `code` and default to the bare kind; the status still comes from the kind.
-2. **`AppError` built directly in each context**: no change in `shared`, but the status of each kind is
-   repeated wherever a refusal is raised.
-3. **The dotted name only in the message**: no change at all, and a client cannot tell refusals apart
+2. **The dotted name only in the message**: no change at all, and a client cannot tell refusals apart
    without reading prose.
 
 ## Decision

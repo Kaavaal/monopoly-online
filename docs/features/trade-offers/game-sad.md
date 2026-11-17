@@ -146,7 +146,7 @@ the data model.
 | `trades` (new) | trade offers | — | `lobby`, `board`, `bank` |
 | `lobby` | players, rooms | nothing | nothing |
 | `board` | tiles, title deeds | `lobby` | `lobby` |
-| `bank` | player accounts, transfers | `lobby` | `lobby` |
+| `bank` | player accounts, transfers | nothing (planned: `lobby`) | `lobby` |
 
 Creation order in `src/app.ts` after this feature: lobby, board, bank, turns, trades. Every arrow from `trades`
 points to a context created before it; nothing points to `trades`.
@@ -196,8 +196,8 @@ C4Container
 
 ## 6. Runtime view
 
-Two of the four transitions in PRD §9 are drawn: the two that read or change other contexts' data. Rejecting
-an offer, listing offers and the expiry of an offer are left to the next stage. Refusals are checked in the
+Two of the four transitions in PRD §9 are drawn: the two that call more of `lobby`, `board` or `bank` than
+"who is acting". Rejecting an offer, listing offers and the expiry of an offer are left to the next stage. Refusals are checked in the
 order the branches are drawn, top to bottom; the first one that applies is the answer.
 
 **Flow 1: pending offer → accepted offer** (AC-07, AC-08, AC-09, AC-10, AC-11, AC-11b, AC-13, AC-14, AC-15,
