@@ -26,7 +26,7 @@ US-01, the part that needs no state of other offers. Derives from [PRD §5 AC-01
 ## Definition of Done
 
 - [ ] test AC-01: 201, state pending, both sides as sent, `expiresAt` five minutes after the controlled clock; owners and balances unchanged
-- [ ] tests AC-02, AC-03, AC-06b and AC-05 (offer to oneself): 400 `invalid`, no offer recorded, the message names the part to correct
+- [ ] tests AC-02, AC-03 (including a side with no title deed and an amount of 0), AC-06b and AC-05 (offer to oneself): 400 `invalid`, no offer recorded, the message names the part to correct
 - [ ] test: two refusals at once → the earlier one in the contract order is returned
 - [ ] the response matches the `TradeOffer` schema of the contract
 - [ ] `pnpm check` green

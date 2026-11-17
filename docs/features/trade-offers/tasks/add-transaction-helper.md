@@ -4,7 +4,7 @@ title: "Add the transaction helper to src/shared/db.ts"
 layer: "infra"
 deps: []
 external: []
-acs: ["AC-07", "AC-19"]
+acs: ["AC-07", "AC-19", "AC-19b"]
 files_hint: ["src/shared/db.ts", "test/shared/db.test.ts"]
 owner: "Kaavaal"
 estimate: "S"

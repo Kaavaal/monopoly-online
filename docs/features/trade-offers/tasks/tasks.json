@@ -89,7 +89,8 @@
       "deps": [],
       "acs": [
         "AC-07",
-        "AC-19"
+        "AC-19",
+        "AC-19b"
       ],
       "dod": "A test on an in-memory database shows the helper commits on return, rolls back and rethrows on a throw, and joins a transaction that is already open.",
       "files_hint": [
@@ -268,7 +269,7 @@
         "AC-17",
         "AC-18"
       ],
-      "dod": "POST /trade-offers/{id}/accept moves every title deed and all money for AC-07; for AC-16, AC-17 and AC-18 returns 409 with owners, balances and the pending state unchanged; gives the answer refusals of AC-08, AC-09, AC-12 and AC-14; and awaits nothing inside the transaction, each in an HTTP test.",
+      "dod": "POST /trade-offers/{id}/accept moves every title deed and all money for AC-07; for AC-16, AC-17 and AC-18 (either side left the room) returns 409 with owners, balances and the pending state unchanged; gives the answer refusals of AC-08, AC-09, AC-12 and AC-14; and awaits nothing inside the transaction, each in an HTTP test.",
       "files_hint": [
         "src/trades/app/service.ts",
         "src/trades/infra/http/routes.ts",
@@ -285,7 +286,8 @@
       ],
       "acs": [
         "AC-12",
-        "AC-19"
+        "AC-19",
+        "AC-19b"
       ],
       "dod": "The QG-1 to QG-4 scenarios of sad §10 pass as automated tests: fails-midway invariants, 100 of 100 single winners, the answer refused at expires_at, p95 within the PRD §6 targets.",
       "files_hint": [
