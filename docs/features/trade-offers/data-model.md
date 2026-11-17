@@ -70,6 +70,7 @@ erDiagram
         integer proposer_money
         integer recipient_money
         text state
+        text note
         text expires_at
         text created_at
     }
@@ -92,6 +93,7 @@ erDiagram
 | `proposer_money` | INTEGER | NOT NULL | whole coins the proposer gives; `0` when none, written by the service |
 | `recipient_money` | INTEGER | NOT NULL | whole coins the recipient gives; `0` when none |
 | `state` | TEXT | NOT NULL | `pending`, `accepted` or `rejected`; the set lives in `trades/domain` |
+| `note` | TEXT | NULL | the proposer's note to the recipient, at most 140 characters, checked in `trades/domain`; `NULL` when none |
 | `expires_at` | TEXT | NOT NULL | ISO 8601 UTC, `created_at` plus the offer lifetime; from the app clock |
 | `created_at` | TEXT | NOT NULL | ISO 8601 UTC, from the app clock |
 
