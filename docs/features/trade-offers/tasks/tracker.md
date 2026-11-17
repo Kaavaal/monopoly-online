@@ -6,7 +6,7 @@
 
 | # | Task | Layer | Owner | Estimate | Blocked by | Status |
 |---|---|---|---|---|---|---|
-| T1 | [Promote the staged `trade_offers` migration](./promote-trade-offers-migration.md) | migration | Kaavaal | S | — | todo |
+| T1 | [Promote the staged `trade_offers` migration](./promote-trade-offers-migration.md) | migration | Kaavaal | S | — | done |
 | T2 | [Promote the staged `trade_offer_properties` migration](./promote-trade-offer-properties-migration.md) | migration | Kaavaal | S | T1 | todo |
 | T3 | [Add the transaction helper to `src/shared/db.ts`](./add-transaction-helper.md) | infra | Kaavaal | S | — | todo |
 | T4 | [Hand a clock to `buildApp` and `makeTestApp`](./pass-clock-to-build-app.md) | wiring | Kaavaal | S | — | todo |
