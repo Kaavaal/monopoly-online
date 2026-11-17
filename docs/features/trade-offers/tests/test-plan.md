@@ -185,4 +185,5 @@ failure cases the PRD implies beyond them:
   here too; each repetition is in memory.
 - Before a release, or on a schedule: load. It is outside the suite that gates a commit, because a time
   threshold fails on a busy machine without a change in the code.
-- Owners in `tasks/`: T8–T13 write the integration rows, T13 the load run, T14 the contract rows.
+- Owners in `tasks/`: T7 the requests without a valid player secret, T8–T13 the integration rows, T13 the
+  load run, T14 the contract rows.
