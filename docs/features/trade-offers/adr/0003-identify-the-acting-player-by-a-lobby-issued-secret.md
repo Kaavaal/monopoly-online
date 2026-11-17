@@ -66,7 +66,7 @@ Light security review, the rest of the list:
 - Cross-room trade: refused from room membership read through `LobbyApi`, at proposal and again at acceptance.
 - Guessing a secret: not rate-limited. With 128 random bits this is accepted for this version.
 - Transport: the repo terminates no TLS. Over plain HTTP the secret is readable on the network; accepted for
-  trial tables on one local network and listed in SAD §11.
+  trial games on one local network and listed in SAD §11.
 
 ## Consequences
 
