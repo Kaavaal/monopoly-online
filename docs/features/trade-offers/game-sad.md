@@ -334,14 +334,34 @@ Decided inline, below the gate:
 
 ## 10. Quality requirements
 
-<!-- One scenario per QG plus one per remaining PRD §6 row. Numbers copied from PRD §6 character for
-character. How verify names the test file and the helper. -->
+**QG-1. Integrity**
 
-**QG-1. <name>**
+- When: any exchange takes place, or any acceptance is refused by the re-check
+- Then: money in a room is unchanged by any exchange; title deed owners are exactly one per deed after every
+  action
+- How verify: `test/trades/offer.test.ts` through `makeTestApp()`: every exchange test sums the balances of the
+  room before and after and reads the owner of every deed (AC-07 to AC-11b)
 
-- When: <trigger>
-- Then: <PRD §6 target, verbatim>
-- How verify: <test/<ctx>/<file>.test.ts through makeTestApp(), what is asserted>
+**QG-2. One winner**
+
+- When: two players act on the same thing at once (AC-11, AC-11b)
+- Then: exactly one wins, 100 of 100 runs
+- How verify: `test/trades/offer.test.ts` through `makeTestApp()`: both acceptances are sent without waiting
+  for the first answer, and the pair is repeated 100 times on a fresh app; each time there is one accepted
+  offer and one refusal with `board.deed_owner_changed` or `bank.insufficient_funds`
+
+**QG-3. Speed of a write**
+
+- When: one write action (propose, accept, reject)
+- Then: p95 ≤ 5 ms
+- How verify: `test/trades/offer.test.ts` through `makeTestApp()`: timed calls, 300 calls
+
+**Speed of a list**
+
+- When: one list action, 300 rows
+- Then: p95 ≤ 10 ms
+- How verify: `test/trades/offer.test.ts` through `makeTestApp()`: timed calls, 300 calls, for a player with
+  300 offers
 
 ## 11. Risks and technical debt
 
