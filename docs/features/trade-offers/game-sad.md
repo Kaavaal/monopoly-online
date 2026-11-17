@@ -40,22 +40,34 @@ up in one hand only by luck and the first full games stall ([PRD](./game-prd.md)
 
 ## 2. Constraints
 
-<!-- Versions exactly as package.json and .nvmrc state them. Repo rules from CLAUDE.md and ARCHITECTURE.md
-that this feature must keep, one line each. Then what the PRD fixes (prerequisite features, no deadline, and
-so on). -->
-
-**Stack**: Node <.nvmrc>, TypeScript <version>, Fastify <version>, `node:sqlite`, vitest <version>, pnpm
-<version>.
+**Stack**: Node 24, TypeScript 6.0.3, Fastify 5.12.7, `node:sqlite`, vitest 5.0.5, pnpm 11.0.9.
 
 **Repo rules**
 
-- <one feature touches one context; others through `<Ctx>Api` from `module.ts`>
-- <migrations `NNNN_<ctx>_<name>.sql`, frozen once applied>
-- <`pnpm check` green before every commit>
+- one feature touches one context; another context is reached through its `<Ctx>Api` from `module.ts`, handed
+  over in `src/app.ts`
+- a context takes only the api of a context created before it in `src/app.ts`; the graph stays acyclic
+- imports point inward: `infra` → `app` → `domain` → `shared/errors`; no context reads another's tables
+- schema changes are new files `migrations/NNNN_<ctx>_<name>.sql`, next free number is 0004; applied migrations
+  are frozen
+- refusals leave domain and app code as `notFound` / `conflict` / `invalid` from `src/shared/errors.ts`; a
+  SQLite constraint error is a 500, so every check is made in the service before the write
+- every route declares a JSON schema for params, body and response
+- tests go through HTTP with `makeTestApp()`
+- `node:sqlite` is synchronous: with no `await` between a read and a write nothing can race
+- `pnpm check` is green before every commit
 
 **From the PRD**
 
-- <prerequisites, order, what is out of scope>
+- three prerequisites are separate features, in this order: rooms and their members (`lobby`), money accounts
+  with a move of money between two players (`bank`), title deeds that belong to a room with an owner change for
+  several deeds at once (`board`). None exists in the code today: `lobby` has players only, `BankApi` and
+  `BoardApi` are empty. This document names what trade offers need from each; it does not design them
+- the game must know which player is acting (PRD §11); AC-15 and AC-16 cannot be tested without it
+- nothing from `turns`
+- no outside deadline; the order of upcoming work sets the urgency
+- out of scope, PRD §3: counter-offers, withdrawal, closing an offer that can no longer be honoured, any signal
+  that an offer arrived, several recipients, partial acceptance
 
 ## 3. Context and scope
 
