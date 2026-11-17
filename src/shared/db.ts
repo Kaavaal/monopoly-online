@@ -17,5 +17,14 @@ export type Sync<T> = T extends PromiseLike<unknown> ? never : T;
  * Called inside an open transaction, it joins it and opens none of its own.
  */
 export function transaction<T>(db: Db, body: () => Sync<T>): T {
-  throw new Error('not implemented');
+  if (db.isTransaction) return body();
+  db.exec('BEGIN IMMEDIATE');
+  try {
+    const result = body();
+    db.exec('COMMIT');
+    return result;
+  } catch (err) {
+    db.exec('ROLLBACK');
+    throw err;
+  }
 }
