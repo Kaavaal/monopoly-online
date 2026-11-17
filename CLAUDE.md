@@ -12,6 +12,8 @@ the dependency rule and the slice anatomy every feature follows.
   `import type`.
 - Schema changes go in a new file `migrations/NNNN_<context>_<name>.sql`, next free number. Applied
   migrations are frozen; fix forward with a new one.
+- Migrations add no `CHECK`, `TRIGGER` or `DEFAULT` with a business value: rules live in the domain. The
+  `CHECK`s of `0001` and `0003` stay. Full rules: `.claude/rules/migrations.md`.
 - Errors leave domain and app code as `notFound` / `conflict` / `invalid` from `src/shared/errors.ts`.
 - Every route declares a JSON schema for params, body and response.
 - Tests go through HTTP with `makeTestApp()` from `test/helpers/app.ts` (fresh in-memory db per call).
