@@ -19,6 +19,6 @@
 | T11 | [Reject a trade offer](./reject-offer.md) | ports | Kaavaal | M | T9, P1, P2, P3, P4 | blocked |
 | T12 | [Accept a trade offer: the exchange in one transaction](./accept-offer-exchange.md) | ports | Kaavaal | L | T3, T11, P1, P2, P3, P4 | blocked |
 | T13 | [Test the quality goals: atomicity, concurrency, expiry edge, latency](./test-quality-goals.md) | tests | Kaavaal | M | T10, T12, P1, P2, P3, P4 | blocked |
-| T14 | [Reconcile the contract report and the docs with the built feature](./reconcile-contract-and-docs.md) | docs | Kaavaal | S | T13 | todo |
+| T14 | [Reconcile the contract report and the docs with the built feature](./reconcile-contract-and-docs.md) | docs | Kaavaal | M | T13 | todo |
 
-**Total:** 14 tasks, ~6.25 person-days (S = 2 h, M = half a day, L = a day), prerequisites not counted.
+**Total:** 14 tasks, ~6.5 person-days (S = 2 h, M = half a day, L = a day), prerequisites not counted.

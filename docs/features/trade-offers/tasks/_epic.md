@@ -96,8 +96,8 @@ See [tracker.md](./tracker.md) for status. Machine contract: [tasks.json](./task
 | T10 | [List incoming and outgoing trade offers](./list-incoming-and-outgoing-offers.md) | ports | T9, P1, P2, P3, P4 | AC-11, AC-13, AC-14, AC-15 | `GET /trade-offers/incoming` shows only pending offers addressed to the acting player (AC-13), `GET /trade-offers/outgoing` shows every offer they made with its state, expired included (AC-11, AC-15), and neither shows an offer of another pair (AC-14), each in an HTTP test. |
 | T11 | [Reject a trade offer](./reject-offer.md) | ports | T9, P1, P2, P3, P4 | AC-08, AC-09, AC-10, AC-10b, AC-12, AC-14 | `POST /trade-offers/{id}/reject` returns 200 with a rejected offer for AC-10, lets the same offer be made again at once for AC-10b, and returns the 404 or 409 of the contract for AC-08, AC-09, AC-12 and AC-14, each in an HTTP test. |
 | T12 | [Accept a trade offer: the exchange in one transaction](./accept-offer-exchange.md) | ports | T3, T11, P1, P2, P3, P4 | AC-07, AC-08, AC-09, AC-12, AC-14, AC-16, AC-17, AC-18 | `POST /trade-offers/{id}/accept` moves every title deed and all money for AC-07; for AC-16, AC-17 and AC-18 (either side left the room) returns 409 with owners, balances and the pending state unchanged; gives the answer refusals of AC-08, AC-09, AC-12 and AC-14; and awaits nothing inside the transaction, each in an HTTP test. |
-| T13 | [Test the quality goals: atomicity, concurrency, expiry edge, latency](./test-quality-goals.md) | tests | T10, T12, P1, P2, P3, P4 | AC-12, AC-19, AC-19b | The QG-1 to QG-4 scenarios of sad §10 pass as automated tests: fails-midway invariants, 100 of 100 single winners, the answer refused at `expires_at`, p95 within the PRD §6 targets. |
-| T14 | [Reconcile the contract report and the docs with the built feature](./reconcile-contract-and-docs.md) | docs | T13 | — | `/sdlc:api-forge trade-offers --reconcile` ends at PASS or PASS (with deferrals) with the `unauthorized` deferral closed, and `pnpm contract:types` followed by `pnpm check` is green. |
+| T13 | [Test the quality goals: atomicity, concurrency, expiry edge, latency](./test-quality-goals.md) | tests | T10, T12, P1, P2, P3, P4 | AC-12, AC-19, AC-19b | The QG-1 to QG-4 scenarios of sad §10 pass as automated tests: fails-midway invariants, 100 of 100 single winners, the answer refused at `expires_at`, p95 within the PRD §6 targets in a separate latency run. |
+| T14 | [Reconcile the contract report and the docs with the built feature](./reconcile-contract-and-docs.md) | docs | T13 | — | `/sdlc:api-forge trade-offers --reconcile` ends at PASS or PASS (with deferrals) with the `unauthorized` deferral closed, the contract rows of the test plan pass, and `pnpm contract:types` followed by `pnpm check` is green. |
 
 The `ports` tasks are vertical slices: the use case in `app/service.ts`, its route and its HTTP tests. The
 repo tests only through HTTP (CLAUDE.md), so a service task without its route would have no testable DoD.
@@ -111,7 +111,7 @@ Every AC of PRD §5 is covered: 21 of 21.
   prerequisite, not a task here.
 - **No new error kind from this feature** (sad §8). `unauthorized` arrives with P2.
 - **Migrations carry no `CHECK`, `TRIGGER` or `DEFAULT`**; applied files are frozen.
-- **Effort:** about 6.25 person-days for T1–T14, prerequisites not counted. This is the budget sad §11 asked
+- **Effort:** about 6.5 person-days for T1–T14, prerequisites not counted. This is the budget sad §11 asked
   this stage to set. Calibration: S = 2 h, M = half a day, L = a day.
 
 ## Open before `implement-tasks`

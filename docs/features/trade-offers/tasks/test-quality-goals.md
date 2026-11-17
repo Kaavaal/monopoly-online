@@ -22,14 +22,14 @@ The NFR table is measured, not assumed. Derives from [PRD §5 AC-19, AC-19b, §6
 - QG-1: an offer whose title deed leg holds and whose money leg fails; assert the deed kept its owner, the room total is the same and the offer is pending.
 - QG-2: two offers give the same deed (AC-19), or money one player cannot pay twice (AC-19b); both acceptances sent together, 100 repetitions of each case on fresh apps; one 200, one 409, invariants hold.
 - QG-3: answers one millisecond before, at, and one millisecond after `expires_at` with a controlled clock.
-- QG-4: server-side duration of the five actions, at least 100 calls of each in a room of 8 players where the acting player has 50 ended offers; p95 against 250 ms and 150 ms.
+- QG-4: a separate latency run, outside `pnpm check`: server-side duration of the five actions, at least 100 calls of each in a room of 8 players where the acting player has 50 ended offers; p95 against 250 ms and 150 ms.
 
 ## Definition of Done
 
 - [ ] QG-1 test passes and fails when the helper of T3 is bypassed
 - [ ] QG-2: 100 of 100 repetitions of each case give exactly one success
 - [ ] QG-3: the answer at `expires_at` is refused with `conflict`
-- [ ] QG-4: p95 within the targets on the sample PRD §6 names
+- [ ] QG-4: the latency run gives p95 within the targets on the sample PRD §6 names and is not part of `pnpm check`
 - [ ] `pnpm check` green
 
 ## Notes

@@ -289,7 +289,7 @@
         "AC-19",
         "AC-19b"
       ],
-      "dod": "The QG-1 to QG-4 scenarios of sad §10 pass as automated tests: fails-midway invariants, 100 of 100 single winners, the answer refused at expires_at, p95 within the PRD §6 targets.",
+      "dod": "The QG-1 to QG-4 scenarios of sad §10 pass as automated tests: fails-midway invariants, 100 of 100 single winners, the answer refused at expires_at, p95 within the PRD §6 targets in a separate latency run.",
       "files_hint": [
         "test/trades/offer.test.ts"
       ]
@@ -302,10 +302,11 @@
         "T13"
       ],
       "acs": [],
-      "dod": "/sdlc:api-forge trade-offers --reconcile ends at PASS or PASS (with deferrals) with the unauthorized deferral closed, and pnpm contract:types followed by pnpm check is green.",
+      "dod": "/sdlc:api-forge trade-offers --reconcile ends at PASS or PASS (with deferrals) with the unauthorized deferral closed, the contract rows of the test plan pass, and pnpm contract:types followed by pnpm check is green.",
       "files_hint": [
         "docs/features/trade-offers/contracts/api-sync-report.md",
         "test/contracts/trade-offers.contract.ts",
+        "test/contracts/trade-offers.contract.test.ts",
         "docs/features/trade-offers/CONTEXT.md",
         "CLAUDE.md"
       ]
