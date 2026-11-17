@@ -20,55 +20,65 @@ target_surfaces: []  # filled in §4 — subset of: backend-service | web-fronte
 
 ## 1. Introduction and goals
 
-<!-- 🎯 Навіщо: стабільна памʼять про «що + три головні якості + хто зацікавлений».     -->
-<!--           Через рік ніхто не згадає на словах, ЯКІ ТРИ ЯКОСТІ для системи критичні. -->
-<!-- 📋 Що писати: 1 абзац intent + 3 рядки топ-3 якості + таблиця stakeholders.        -->
-<!-- 📌 Приклад: «QG-1: швидкість редагування блоку p95 ≤500 мс»                         -->
-
-**Intent.** <One paragraph from PRD §Goals — what we're building and for whom.>
+**Intent.** Players in one room can trade title deeds and money. A proposer sends one recipient a trade offer;
+the recipient accepts or rejects it as a whole, or it becomes an expired offer when its offer lifetime of five
+minutes runs out. An acceptance checks ownership, balances and room membership again, and then everything named
+in the offer changes hands at once or nothing does. Without trading a color group comes together only by luck,
+so the first full games stall ([PRD](./PRD.md) §1, §2).
 
 **Top-3 quality goals (1-liners; full scenarios in §10):**
 
-1. <e.g. "Availability under partial failure of downstream module">
-2. <e.g. "Performance for EM dashboard under team-scale growth">
-3. <e.g. "Recoverability of checkpoints with <30 min RTO">
+1. Exchange atomicity: an acceptance moves every title deed and all money named in the offer, or none of it.
+2. Concurrency correctness: of two acceptances competing for one title deed, exactly one goes through.
+3. Expiry accuracy: no answer is accepted after the offer lifetime has run out.
+
+Latency is a fourth scenario in §10. It is not a driver: the stack in §2 meets the PRD targets without design
+work.
 
 **Stakeholders.**
 
 | Role | Interest | Sign-off owner? |
 |---|---|---|
-| <e.g. IC> | <feature usage> | No |
-| <e.g. EM> | <dashboard reads> | No |
-| <e.g. Tech Lead> | <SAD approval> | Yes |
-
-<!-- Decision overrides (¶4) — populated by the Step-7 critic resolution loop, empty otherwise.       -->
-<!-- Each: «Decision override: <headline> — rationale: <reason>» so downstream skills see the choice.  -->
+| proposer | makes a trade offer and sees how it ended | No |
+| recipient | finds pending offers addressed to them and answers each as a whole | No |
+| Tech Lead (Kaavaal, also product owner) | approves this document and the ADRs; owns the PRD open questions | Yes |
 
 ## 2. Constraints
 
-<!-- 🎯 Навіщо: §4 (стратегія) працює тільки коли §2 зафіксувала, ЩО ВЖЕ ЗАФІКСОВАНО:    -->
-<!--           стек, версії, дедлайн, регуляторні вимоги. Це вхід, не вихід.             -->
-<!-- 📋 Що писати: чотири блоки — Технічні / Організаційні / Конвенції / Регуляторні.     -->
-<!-- 📌 Приклад: «Postgres 18» (не «Postgres»); «дедлайн Q3 — жорсткий» (не «бажано»).    -->
-
 **Technical.**
-- <Language + version, e.g. Go 1.26>
-- <Framework + version, e.g. chi v5.1, pgx v5.7>
-- <Datastore + version, e.g. Postgres 18>
-- <Architecture convention, e.g. hexagonal per CLAUDE.md>
+- Node.js ≥ 24.2 (`.nvmrc`: 24), TypeScript 6.0.3, ES modules.
+- Fastify 5.12.7. Every route declares a JSON schema for params, body and response.
+- `node:sqlite` (`DatabaseSync`) with `PRAGMA foreign_keys = ON`: one process, one database file, every call
+  synchronous. Schema changes are forward-only files `migrations/NNNN_<context>_<name>.sql`.
+- Hexagonal per bounded context, checked by dependency-cruiser 18.7.0 (`pnpm arch:check`). A context reaches
+  another only through its `<Ctx>Api` from `module.ts`, handed over in `src/app.ts`.
+- Tests run on vitest 5.0.5 and go through HTTP with `makeTestApp()` (fresh in-memory database per call).
+- What exists today: `lobby` has players (`LobbyApi.players.exists`, `nameOf`); `board` has title deeds
+  (`properties`) that are not tied to a room and whose owner anyone can change; `BoardApi` is empty; `bank` and
+  `turns` are empty modules.
 
 **Organisational.**
-- <Effort budget, e.g. 3 person-weeks>
-- <Deadline, e.g. 2026-Q3 hard>
-- <Team composition, e.g. 1 backend + 0.5 frontend>
+- No external deadline; the order of upcoming work sets the urgency (PRD §1).
+- Effort budget: not stated in the PRD. Tracked in §11.
+- The feature is sized S on the basis that its prerequisites ship first, each as a separate feature outside
+  this document (PRD §1): rooms with their players, money accounts with balances, title deeds that belong to one
+  room, and a way for the product to know which player is acting.
 
 **Conventions.**
-- <Link to CLAUDE.md or project conventions>
-- <Naming, ID strategy, error-handling pattern>
+- [CLAUDE.md](../../../CLAUDE.md) and [ARCHITECTURE.md](../../../ARCHITECTURE.md): one feature touches one
+  context; the slice anatomy `domain/ → app/ → infra/ → module.ts`; `pnpm check` green before every commit.
+- Errors leave domain and app code as `notFound`, `conflict` or `invalid` from `src/shared/errors.ts`. A
+  uniqueness or state check belongs in the service: look up, throw, then write.
+- Ids are `randomUUID()` values created in the service; timestamps are ISO 8601 strings.
 
 **Regulatory / external.**
-- <e.g. GDPR — user deletion behavior per ADR-NNNN>
-- <e.g. SOC2, PCI — applicable controls>
+- No regulation applies. Data classification is internal: offers are game state of a private room, no real
+  money and no personal data (PRD §6.1).
+- Controls taken from PRD §6.1: only the acting player makes an offer in their own name; only the recipient
+  answers; only the proposer and the recipient learn anything about an offer; a cross-room trade is refused.
+- Accepted in this version (PRD §6.1): the one-coin dump, and re-sending a rejected offer at once.
+- Security review: required, light. Its subject is how the product learns which player is acting; it is done in
+  §4 of this document.
 
 ## 3. Context and scope
 
