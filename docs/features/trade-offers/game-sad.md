@@ -365,16 +365,23 @@ Decided inline, below the gate:
 
 ## 11. Risks and technical debt
 
-<!-- Product risk first when a PRD §7 KPI has a trigger. Severity Low / Medium / High, or Open question with
-owner and due. -->
-
 | Risk | Severity | Mitigation | Owner | Due |
 |---|---|---|---|---|
-| <risk> | <Low/Medium/High/Open question> | <what is done> | <who> | <when, for open questions> |
+| Offers nobody saw: with no arrival signal, more than 40% of trade offers end as expired offers (M2) | Medium | M2 is counted from the offers table after each playtest; above target, parked approach B is built first (PRD §7) | Kaavaal | |
+| Four prerequisites are not built: rooms, accounts, room deeds with a guarded move of several deeds, the secret. The feature cannot start, and each must offer the calls of §5 as written | High | the §5 call table goes into each prerequisite's PRD as a requirement | Kaavaal | |
+| A request without a valid secret has no refusal in PRD §10.2: kind and code are undecided, and AC-16 says only what an outsider sees, not what an unknown sender sees | Open question | no branch in §6 until it is decided | Kaavaal | the PRD of the `lobby` secret feature |
+| A prerequisite builds a write without its guard, or with a transaction of its own; ADR-0002 then fails silently | Medium | the AC-08, AC-09, AC-11 and AC-11b tests go through the real `board` and `bank` and turn red | Kaavaal | |
+| A query forgets the clock, and an expired offer is shown or counted as pending (AC-06, AC-13, AC-18) | Medium | the state of an offer is computed in one function in `domain/offer.ts`; tests move the clock past 5 minutes | Kaavaal | |
+| An acceptance with a transaction and three contexts misses p95 ≤ 5 ms | Low | measured in the feature's test file from the first commit | Kaavaal | |
+| M3 cannot be counted when the log of a playtest is not kept | Low | the playtest checklist saves the process output | Kaavaal | |
 
 **Accepted debt**
 
-- <what is left on purpose and when it is looked at again>
+- `lobby` and `board` routes keep the bare kind in `code`; they move to dotted codes when a feature next
+  touches them (ADR-0004)
+- a pending offer that can no longer be honoured stays pending until its offer lifetime runs out (PRD §3);
+  looked at again when M3 goes above 10%
+- a lost secret cannot be recovered (ADR-0003); looked at again when the game gets accounts
 
 ## 12. Glossary
 
