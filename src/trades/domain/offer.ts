@@ -63,9 +63,9 @@ export function validateTerms(terms: OfferTerms): void {
       named.add(propertyId);
     }
   }
-  for (const [, side] of sides) {
+  for (const [name, side] of sides) {
     if (side.propertyIds.length === 0 && side.money === 0) {
-      throw invalid('each side of a trade offer must give at least one title deed or some money');
+      throw invalid(`${name} is empty: each side of a trade offer must give at least one title deed or some money`);
     }
   }
 }
@@ -80,7 +80,8 @@ export interface TradeOfferRepository {
   listPendingByRecipient(recipientId: string, now: string): TradeOffer[];
   /** Every offer the proposer made, in any state, by `createdAt`, then `id`. */
   listByProposer(proposerId: string): TradeOffer[];
-  setState(id: string, state: StoredOfferState): void;
+  /** The answer to a pending offer. Nothing moves an offer back to pending. */
+  setState(id: string, state: Exclude<StoredOfferState, 'pending'>): void;
 }
 
 /**
