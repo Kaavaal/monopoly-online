@@ -1,0 +1,474 @@
+# Derived by /game-api-contract trade-offers. Change a source, then run /game-api-contract trade-offers --reconcile.
+#   fields and constraints <- game-data-model.md, domain constants
+#   operations             <- game-sad.md §6 flows, game-prd.md user stories
+#   refusals               <- game-sad.md §6 alt branches, game-prd.md §10.2
+openapi: 3.1.0
+
+info:
+  title: Trade offers API
+  version: 0.1.0
+  description: |
+    Players in a room cannot trade, so a color group ends up in one hand only by luck and a game has no
+    natural end. With this API a proposer sends one recipient in the same room a trade offer of title deeds
+    and/or money; the recipient accepts or rejects it as a whole, or it expires after 5 minutes. On
+    acceptance ownership, balances and room membership are checked again, and everything changes hands at
+    once or nothing does. One pending offer per proposer, no withdrawal, no signal that an offer arrived.
+
+    A request that breaks a route's JSON schema (a wrong type, an unknown field, an id that is not a UUID)
+    is refused by src/shared/http.ts with the bare code `invalid` before any rule below is checked.
+
+servers:
+  - url: http://localhost:8080
+    description: Local
+
+security:
+  - BearerAuth: []
+
+paths:
+  /trade-offers:
+    post:
+      summary: Propose a trade offer
+      description: |
+        US-01, game-sad.md §6 flow 2. Creates a pending offer from the acting player, who becomes its
+        proposer, to one recipient in the same room. No title deed or money changes hands.
+
+        Refusals in the order they are checked, first match wins:
+
+        1. `unauthorized`: no player secret or an unknown one.
+        2. `trades.not_a_trade` (`invalid`): a side gives nothing, the recipient is the proposer, or a
+           title deed is named twice (AC-02).
+        3. `trades.unknown_player_or_deed` (`invalid`): the recipient or a title deed does not exist (AC-03).
+        4. `trades.recipient_not_in_room` (`invalid`): the recipient is not in the proposer's room (AC-05).
+        5. `trades.not_yours_to_give` (`invalid`): a title deed is not owned by the side that gives it, or
+           the proposer holds less money than they give (AC-04).
+        6. `trades.pending_offer_exists` (`conflict`): the proposer already has a pending offer (AC-06).
+      operationId: proposeTradeOffer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/TradeOfferCreate" }
+            examples:
+              deedAndMoneyForDeed: { $ref: "#/components/examples/TradeOfferCreate" }
+      responses:
+        "201":
+          description: The pending offer, with a lifetime of 5 minutes (AC-01).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TradeOffer" }
+              examples:
+                pending: { $ref: "#/components/examples/TradeOfferPending" }
+        "400":
+          description: The request is wrong on its own; no offer is created (AC-02, AC-03, AC-04, AC-05).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                schemaViolation: { $ref: "#/components/examples/SchemaViolation" }
+                notATrade:
+                  summary: AC-02
+                  value:
+                    error:
+                      code: trades.not_a_trade
+                      message: "Not a trade: each side gives something, to another player, each deed once, money in whole amounts above zero"
+                unknownPlayerOrDeed:
+                  summary: AC-03
+                  value:
+                    error: { code: trades.unknown_player_or_deed, message: "No such player or title deed" }
+                recipientNotInRoom:
+                  summary: AC-05
+                  value:
+                    error: { code: trades.recipient_not_in_room, message: "That player is not in your room" }
+                notYoursToGive:
+                  summary: AC-04
+                  value:
+                    error:
+                      code: trades.not_yours_to_give
+                      message: "A side does not own what the offer says it gives"
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "409":
+          description: The proposer already has a pending offer; it stays unchanged (AC-06).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                pendingOfferExists:
+                  summary: AC-06
+                  value:
+                    error:
+                      code: trades.pending_offer_exists
+                      message: "You already have an offer waiting for an answer"
+
+    get:
+      summary: List my trade offers
+      description: |
+        US-04. No flow in game-sad.md §6 yet; derived from AC-16, AC-17, AC-18. Ordered by `createdAt`,
+        then `id`. Holds only the acting player's own offers:
+
+        - `role=recipient`: pending offers addressed to the acting player. An answered or expired offer
+          is not listed.
+        - `role=proposer`: every offer the acting player sent, with its state.
+      operationId: listTradeOffers
+      parameters:
+        - $ref: "#/components/parameters/TradeOfferRole"
+      responses:
+        "200":
+          description: Possibly none (AC-17, AC-18).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TradeOfferList" }
+              examples:
+                asRecipient:
+                  summary: role=recipient, pending offers only
+                  value:
+                    - id: "11111111-1111-4111-8111-111111111111"
+                      proposerId: "22222222-2222-4222-8222-222222222222"
+                      recipientId: "33333333-3333-4333-8333-333333333333"
+                      proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+                      recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+                      state: pending
+                      expiresAt: "2026-01-01T10:05:00.000Z"
+                      createdAt: "2026-01-01T10:00:00.000Z"
+                asProposer:
+                  summary: role=proposer, every state (AC-18 for the expired one)
+                  value:
+                    - id: "66666666-6666-4666-8666-666666666666"
+                      proposerId: "22222222-2222-4222-8222-222222222222"
+                      recipientId: "33333333-3333-4333-8333-333333333333"
+                      proposerGives: { propertyIds: [], money: 120 }
+                      recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+                      state: expired
+                      expiresAt: "2026-01-01T09:35:00.000Z"
+                      createdAt: "2026-01-01T09:30:00.000Z"
+                    - id: "11111111-1111-4111-8111-111111111111"
+                      proposerId: "22222222-2222-4222-8222-222222222222"
+                      recipientId: "33333333-3333-4333-8333-333333333333"
+                      proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+                      recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+                      state: pending
+                      expiresAt: "2026-01-01T10:05:00.000Z"
+                      createdAt: "2026-01-01T10:00:00.000Z"
+        "400":
+          description: "`role` is missing or is not one of its values."
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                schemaViolation: { $ref: "#/components/examples/SchemaViolation" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+
+  /trade-offers/{id}/accept:
+    post:
+      summary: Accept a trade offer
+      description: |
+        US-02, game-sad.md §6 flow 1. Every title deed and all money named change hands in one
+        transaction (game-adr/0002) and the offer becomes an accepted offer. A refusal changes nothing:
+        after a `player_left_room`, `deed_owner_changed` or `insufficient_funds` refusal the offer is
+        still pending and can be accepted again until its lifetime runs out.
+
+        Refusals in the order they are checked, first match wins:
+
+        1. `unauthorized`: no player secret or an unknown one.
+        2. `trades.offer_not_found` (`not_found`): no such offer, or the acting player is neither its
+           proposer nor its recipient (AC-16).
+        3. `trades.only_recipient_answers` (`invalid`): the acting player is its proposer (AC-15).
+        4. `trades.offer_already_answered` (`conflict`): the offer is accepted or rejected (AC-14).
+        5. `trades.offer_expired` (`conflict`): the offer lifetime has run out (AC-13).
+        6. `trades.player_left_room` (`conflict`): the proposer or the recipient has left the room (AC-10).
+        7. `board.deed_owner_changed` (`conflict`): a title deed has another owner (AC-08, AC-11).
+        8. `bank.insufficient_funds` (`conflict`): a side does not hold the money it gives (AC-09, AC-11b).
+      operationId: acceptTradeOffer
+      parameters:
+        - $ref: "#/components/parameters/TradeOfferId"
+      responses:
+        "200":
+          description: The accepted offer; the exchange took place in full (AC-07).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TradeOffer" }
+              examples:
+                accepted: { $ref: "#/components/examples/TradeOfferAccepted" }
+        "400": { $ref: "#/components/responses/NotTheRecipient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/OfferNotFound" }
+        "409":
+          description: |
+            The offer cannot be accepted now; nothing changes hands (AC-08, AC-09, AC-10, AC-11, AC-11b,
+            AC-13, AC-14).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                offerAlreadyAnswered: { $ref: "#/components/examples/OfferAlreadyAnswered" }
+                offerExpired: { $ref: "#/components/examples/OfferExpired" }
+                playerLeftRoom:
+                  summary: AC-10
+                  value:
+                    error: { code: trades.player_left_room, message: "A player in this offer has left the room" }
+                deedOwnerChanged:
+                  summary: AC-08, AC-11
+                  value:
+                    error: { code: board.deed_owner_changed, message: "A title deed in this offer has a new owner" }
+                insufficientFunds:
+                  summary: AC-09, AC-11b
+                  value:
+                    error: { code: bank.insufficient_funds, message: "Not enough money to make this exchange" }
+
+  /trade-offers/{id}/reject:
+    post:
+      summary: Reject a trade offer
+      description: |
+        US-03. No flow in game-sad.md §6 yet; derived from AC-12 to AC-16, with the refusals in the order
+        flow 1 checks the same branches. The offer becomes a rejected offer, nothing changes hands, and
+        the proposer may propose again at once.
+
+        Refusals in the order they are checked, first match wins:
+
+        1. `unauthorized`: no player secret or an unknown one.
+        2. `trades.offer_not_found` (`not_found`): no such offer, or the acting player is neither its
+           proposer nor its recipient (AC-16).
+        3. `trades.only_recipient_answers` (`invalid`): the acting player is its proposer (AC-15).
+        4. `trades.offer_already_answered` (`conflict`): the offer is accepted or rejected (AC-14).
+        5. `trades.offer_expired` (`conflict`): the offer lifetime has run out (AC-13).
+      operationId: rejectTradeOffer
+      parameters:
+        - $ref: "#/components/parameters/TradeOfferId"
+      responses:
+        "200":
+          description: The rejected offer (AC-12).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TradeOffer" }
+              examples:
+                rejected: { $ref: "#/components/examples/TradeOfferRejected" }
+        "400": { $ref: "#/components/responses/NotTheRecipient" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+        "404": { $ref: "#/components/responses/OfferNotFound" }
+        "409":
+          description: The offer can no longer be answered; it keeps its state (AC-13, AC-14).
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+              examples:
+                offerAlreadyAnswered: { $ref: "#/components/examples/OfferAlreadyAnswered" }
+                offerExpired: { $ref: "#/components/examples/OfferExpired" }
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: The opaque player secret that `lobby` issues (game-adr/0003). Not a JWT.
+
+  parameters:
+    TradeOfferId:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+
+    TradeOfferRole:
+      in: query
+      name: role
+      required: true
+      description: Which of the acting player's offers to list (AC-17).
+      schema: { $ref: "#/components/schemas/TradeOfferRole" }
+
+  responses:
+    # The kind and code of this refusal are not decided: game-sad.md §11 leaves them to the PRD of the lobby
+    # secret feature. `unauthorized` / 401 is the default of .claude/rules/openapi.md until then.
+    Unauthorized:
+      description: No player secret, or an unknown one. Checked before anything else.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            noSecret:
+              value:
+                error: { code: unauthorized, message: "a player secret is required" }
+
+    NotTheRecipient:
+      description: The acting player is the proposer of the offer; it stays pending (AC-15).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            schemaViolation: { $ref: "#/components/examples/SchemaViolation" }
+            onlyRecipientAnswers:
+              summary: AC-15
+              value:
+                error: { code: trades.only_recipient_answers, message: "Only the recipient can answer this offer" }
+
+    OfferNotFound:
+      description: |
+        No such offer. The same answer for an offer that never existed and for one between two other
+        players (AC-16).
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          examples:
+            offerNotFound:
+              summary: AC-16
+              value:
+                error: { code: trades.offer_not_found, message: "No such offer" }
+
+  examples:
+    TradeOfferCreate:
+      summary: Deed X and 50 for deed Y (AC-01)
+      value:
+        recipientId: "33333333-3333-4333-8333-333333333333"
+        proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+        recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+
+    TradeOfferPending:
+      value:
+        id: "11111111-1111-4111-8111-111111111111"
+        proposerId: "22222222-2222-4222-8222-222222222222"
+        recipientId: "33333333-3333-4333-8333-333333333333"
+        proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+        recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+        state: pending
+        expiresAt: "2026-01-01T10:05:00.000Z"
+        createdAt: "2026-01-01T10:00:00.000Z"
+
+    TradeOfferAccepted:
+      value:
+        id: "11111111-1111-4111-8111-111111111111"
+        proposerId: "22222222-2222-4222-8222-222222222222"
+        recipientId: "33333333-3333-4333-8333-333333333333"
+        proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+        recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+        state: accepted
+        expiresAt: "2026-01-01T10:05:00.000Z"
+        createdAt: "2026-01-01T10:00:00.000Z"
+
+    TradeOfferRejected:
+      value:
+        id: "11111111-1111-4111-8111-111111111111"
+        proposerId: "22222222-2222-4222-8222-222222222222"
+        recipientId: "33333333-3333-4333-8333-333333333333"
+        proposerGives: { propertyIds: ["44444444-4444-4444-8444-444444444444"], money: 50 }
+        recipientGives: { propertyIds: ["55555555-5555-4555-8555-555555555555"], money: 0 }
+        state: rejected
+        expiresAt: "2026-01-01T10:05:00.000Z"
+        createdAt: "2026-01-01T10:00:00.000Z"
+
+    # Not a row of game-prd.md §10.2: src/shared/http.ts answers a JSON schema failure with the bare kind.
+    SchemaViolation:
+      summary: The request breaks the route's JSON schema
+      value:
+        error: { code: invalid, message: "body/proposerGives must have required property 'money'" }
+
+    OfferAlreadyAnswered:
+      summary: AC-14
+      value:
+        error: { code: trades.offer_already_answered, message: "This offer was already answered" }
+
+    OfferExpired:
+      summary: AC-13
+      value:
+        error: { code: trades.offer_expired, message: "This offer has expired" }
+
+  schemas:
+    # src/shared/http.ts renders every refusal as { error: { code, message } }.
+    Error:
+      type: object
+      required: [error]
+      additionalProperties: false
+      properties:
+        error: { $ref: "#/components/schemas/ErrorBody" }
+
+    ErrorBody:
+      type: object
+      required: [code, message]
+      additionalProperties: false
+      properties:
+        code:
+          description: |
+            `<context>.<reason>` from game-prd.md §10.2 (game-adr/0004); `unauthorized` from `lobby`;
+            `invalid` for a request that breaks the route's JSON schema. The status comes from the kind
+            in src/shared/errors.ts. `board.*` and `bank.*` codes pass through `trades` unchanged
+            (game-adr/0002).
+          type: string
+          enum:
+            - unauthorized
+            - invalid
+            - trades.not_a_trade
+            - trades.unknown_player_or_deed
+            - trades.not_yours_to_give
+            - trades.recipient_not_in_room
+            - trades.pending_offer_exists
+            - trades.player_left_room
+            - trades.offer_expired
+            - trades.offer_already_answered
+            - trades.only_recipient_answers
+            - trades.offer_not_found
+            - board.deed_owner_changed
+            - bank.insufficient_funds
+        message:
+          description: Says what to correct; names the title deed, the amount or the side.
+          type: string
+
+    # trade_offers.state: `pending`, `accepted` or `rejected` (game-data-model.md, Note of `state`).
+    # `expired` is never stored: a pending row whose `expires_at` is not later than the clock is an expired
+    # offer on every read (game-sad.md §8 Time).
+    TradeOfferState:
+      type: string
+      enum: [pending, accepted, rejected, expired]
+
+    # Not stored: selects one of the two reads of AC-17 (indexes trade_offers_proposer_id and
+    # trade_offers_recipient_pending in game-data-model.md).
+    TradeOfferRole:
+      type: string
+      enum: [proposer, recipient]
+
+    # What one side of a trade offer gives. The side is the key that holds it (`proposerGives`,
+    # `recipientGives`), so `trade_offer_properties.giver_id` never comes from the client (game-adr/0003).
+    # No `uniqueItems` and no `minItems`: a deed named twice and a side that gives nothing are refused by the
+    # domain with `trades.not_a_trade` (AC-02), not by the schema.
+    TradeSide:
+      type: object
+      required: [propertyIds, money]
+      additionalProperties: false
+      properties:
+        # trade_offer_properties.property_id of the rows whose giver_id is this side; a `board` title deed
+        propertyIds:
+          type: array
+          items: { type: string, format: uuid }
+        # trade_offers.proposer_money / recipient_money, INTEGER; whole coins, 0 when the side gives none
+        money: { type: integer, minimum: 0 }
+
+    # trade_offers, with its trade_offer_properties rows folded into the two sides.
+    TradeOffer:
+      type: object
+      required: [id, proposerId, recipientId, proposerGives, recipientGives, state, expiresAt, createdAt]
+      additionalProperties: false
+      properties:
+        # trade_offers.id
+        id: { type: string, format: uuid }
+        # trade_offers.proposer_id; a `lobby` player, always the player who proposed
+        proposerId: { type: string, format: uuid }
+        # trade_offers.recipient_id; a `lobby` player
+        recipientId: { type: string, format: uuid }
+        proposerGives: { $ref: "#/components/schemas/TradeSide" }
+        recipientGives: { $ref: "#/components/schemas/TradeSide" }
+        state: { $ref: "#/components/schemas/TradeOfferState" }
+        # trade_offers.expires_at: created_at plus the offer lifetime of 5 minutes
+        expiresAt: { type: string, format: date-time }
+        # trade_offers.created_at
+        createdAt: { type: string, format: date-time }
+
+    # The proposer is the acting player and is never sent in the body (game-adr/0003).
+    TradeOfferCreate:
+      type: object
+      required: [recipientId, proposerGives, recipientGives]
+      additionalProperties: false
+      properties:
+        # trade_offers.recipient_id
+        recipientId: { type: string, format: uuid }
+        proposerGives: { $ref: "#/components/schemas/TradeSide" }
+        recipientGives: { $ref: "#/components/schemas/TradeSide" }
+
+    TradeOfferList:
+      type: array
+      items: { $ref: "#/components/schemas/TradeOffer" }
