@@ -64,9 +64,8 @@ Decisions kept against the critic:
   collusion (§8).
 - Withdrawing an offer: parked with approaches B and C; the proposer waits for an answer or for the
   5 minutes.
-- Closing a pending offer the moment it can no longer be honoured: parked with approaches B and C. Such an
-  offer stays pending; an acceptance goes through only if the re-check passes at that moment, else the offer
-  expires.
+- Closing a pending offer the moment it can no longer be honoured: parked with approaches B and C. A refused
+  acceptance changes nothing and the offer stays pending until its 5 minutes run out (AC-08 to AC-10).
 - A signal that an offer arrived, and offers visible to the whole room: parked with approach B; the game
   cannot reach players yet.
 - A pause before proposing again after a rejection: no real table has one; watched in §8.
