@@ -11,6 +11,7 @@ export type TradeOfferRow = {
   proposer_money: number;
   recipient_money: number;
   state: 'pending' | 'accepted' | 'rejected';
+  note: string | null;
   expires_at: string;
   created_at: string;
 };
@@ -31,6 +32,7 @@ export function toTradeOffer(row: TradeOfferRow, deeds: TradeOfferPropertyRow[],
     proposerGives: { propertyIds: givenBy(row.proposer_id), money: row.proposer_money },
     recipientGives: { propertyIds: givenBy(row.recipient_id), money: row.recipient_money },
     state: row.state === 'pending' && row.expires_at <= now ? 'expired' : row.state,
+    note: row.note,
     expiresAt: row.expires_at,
     createdAt: row.created_at,
   };

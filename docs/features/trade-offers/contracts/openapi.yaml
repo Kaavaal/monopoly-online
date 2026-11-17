@@ -45,7 +45,7 @@ paths:
 
         1. `unauthorized`: no player secret or an unknown one.
         2. `invalid`: the body does not match the schema (a negative or fractional amount, a title deed
-           named twice on one side, a malformed id).
+           named twice on one side, a malformed id, a note longer than 140 characters).
         3. `invalid`: `proposerId` names a player other than the acting player (AC-06b).
         4. `invalid`: the same title deed is named on both sides (AC-02).
         5. `invalid`: one side gives neither a title deed nor money (AC-03).
@@ -72,6 +72,7 @@ paths:
                   recipientGives:
                     propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                     money: 150
+                  note: "Test note"
       responses:
         "201":
           description: The pending offer, with what each side gives and when its offer lifetime runs out (AC-01, AC-10b).
@@ -166,6 +167,7 @@ paths:
                         propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                         money: 150
                       state: pending
+                      note: "Test note"
                       expiresAt: "2026-11-17T10:05:00.000Z"
                       createdAt: "2026-11-17T10:00:00.000Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -196,6 +198,7 @@ paths:
                         propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                         money: 0
                       state: expired
+                      note: null
                       expiresAt: "2026-11-17T09:35:00.000Z"
                       createdAt: "2026-11-17T09:30:00.000Z"
                     - id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
@@ -208,6 +211,7 @@ paths:
                         propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                         money: 150
                       state: pending
+                      note: "Test note"
                       expiresAt: "2026-11-17T10:05:00.000Z"
                       createdAt: "2026-11-17T10:00:00.000Z"
         "401": { $ref: "#/components/responses/Unauthorized" }
@@ -256,6 +260,7 @@ paths:
                       propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                       money: 150
                     state: accepted
+                    note: "Test note"
                     expiresAt: "2026-11-17T10:05:00.000Z"
                     createdAt: "2026-11-17T10:00:00.000Z"
         "400": { $ref: "#/components/responses/InvalidId" }
@@ -324,6 +329,7 @@ paths:
                       propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
                       money: 150
                     state: rejected
+                    note: "Test note"
                     expiresAt: "2026-11-17T10:05:00.000Z"
                     createdAt: "2026-11-17T10:00:00.000Z"
         "400": { $ref: "#/components/responses/InvalidId" }
@@ -400,6 +406,7 @@ components:
           propertyIds: ["bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"]
           money: 150
         state: pending
+        note: "Test note"
         expiresAt: "2026-11-17T10:05:00.000Z"
         createdAt: "2026-11-17T10:00:00.000Z"
     ProposerAnswers:
@@ -462,6 +469,13 @@ components:
           type: integer
           minimum: 0
 
+    # trade_offers.note. unused-in-prd: no user story or acceptance criterion covers it yet
+    # (api-sync-report.md, Deferrals).
+    TradeOfferNote:
+      description: The proposer's note to the recipient; null when none. In a request it may be left out.
+      type: [string, "null"]
+      maxLength: 140
+
     TradeOfferCreate:
       type: object
       required: [recipientId, proposerGives, recipientGives]
@@ -479,10 +493,11 @@ components:
           format: uuid
         proposerGives: { $ref: "#/components/schemas/TradeOfferSide" }
         recipientGives: { $ref: "#/components/schemas/TradeOfferSide" }
+        note: { $ref: "#/components/schemas/TradeOfferNote" }
 
     TradeOffer:
       type: object
-      required: [id, proposerId, recipientId, proposerGives, recipientGives, state, expiresAt, createdAt]
+      required: [id, proposerId, recipientId, proposerGives, recipientGives, state, note, expiresAt, createdAt]
       additionalProperties: false
       properties:
         id: { type: string, format: uuid }
@@ -491,6 +506,7 @@ components:
         proposerGives: { $ref: "#/components/schemas/TradeOfferSide" }
         recipientGives: { $ref: "#/components/schemas/TradeOfferSide" }
         state: { $ref: "#/components/schemas/TradeOfferState" }
+        note: { $ref: "#/components/schemas/TradeOfferNote" }
         expiresAt:
           description: When the offer lifetime runs out or ran out; `createdAt` plus five minutes. ISO 8601, UTC.
           type: string

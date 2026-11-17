@@ -22,7 +22,7 @@ export interface paths {
          *
          *     1. `unauthorized`: no player secret or an unknown one.
          *     2. `invalid`: the body does not match the schema (a negative or fractional amount, a title deed
-         *        named twice on one side, a malformed id).
+         *        named twice on one side, a malformed id, a note longer than 140 characters).
          *     3. `invalid`: `proposerId` names a player other than the acting player (AC-06b).
          *     4. `invalid`: the same title deed is named on both sides (AC-02).
          *     5. `invalid`: one side gives neither a title deed nor money (AC-03).
@@ -176,6 +176,8 @@ export interface components {
             /** @description Whole coins this side gives; 0 when none. */
             money: number;
         };
+        /** @description The proposer's note to the recipient; null when none. In a request it may be left out. */
+        TradeOfferNote: string | null;
         TradeOfferCreate: {
             /**
              * Format: uuid
@@ -190,6 +192,7 @@ export interface components {
             recipientId: string;
             proposerGives: components["schemas"]["TradeOfferSide"];
             recipientGives: components["schemas"]["TradeOfferSide"];
+            note?: components["schemas"]["TradeOfferNote"];
         };
         TradeOffer: {
             /** Format: uuid */
@@ -201,6 +204,7 @@ export interface components {
             proposerGives: components["schemas"]["TradeOfferSide"];
             recipientGives: components["schemas"]["TradeOfferSide"];
             state: components["schemas"]["TradeOfferState"];
+            note: components["schemas"]["TradeOfferNote"];
             /**
              * Format: date-time
              * @description When the offer lifetime runs out or ran out; `createdAt` plus five minutes. ISO 8601, UTC.
