@@ -285,36 +285,34 @@ window yet (PRD §6).
 
 ## 8. Crosscutting concepts
 
-<!-- 🎯 Навіщо: НАСКРІЗНІ ПАТЕРНИ, які перетинають кілька модулів: логування, помилки,    -->
-<!--           авторизація, ID strategy, outbox, кеш. ⭐ Друга найгустіша секція.          -->
-<!--           Якщо патерн всередині одного модуля — він НЕ сюди. Якщо це конвенція        -->
-<!--           проєкту в цілому — у CLAUDE.md.                                              -->
-<!-- 📋 Що писати: таблиця концепт / конвенція / де визначено. Один рядок на концепт.      -->
-<!-- 📌 Приклад: «UUID v7 (час+випадковий, сортується) у app-layer» — як default з CLAUDE.md. -->
+Trade offers follow the conventions of the repo. Only the rows marked "new" add something.
 
 | Concept | Convention | Where defined |
 |---|---|---|
-| Logging | <e.g. structured slog, fields `module=<name>`> | <CLAUDE.md §X or here> |
-| Authentication | <e.g. JWT via session middleware> | <CLAUDE.md §X> |
-| Error handling | <e.g. domain sentinel → ports/errors.go → apperr JSON> | <CLAUDE.md §X> |
-| ID strategy | <e.g. UUID v7 in app layer> | <CLAUDE.md §X> |
-| Internationalisation | <e.g. N/A, English only> | — |
-| Observability | <e.g. OpenTelemetry on HTTP boundaries> | — |
-| Outbox / events | <module-specific patterns, if any> | <here> |
+| Authentication (new) | The client sends a player secret as a bearer credential; `trades` resolves the acting player through `LobbyApi`. No secret or an unknown one: HTTP 401, kind `unauthorized` | ADR-0003; built by the `lobby` prerequisite |
+| Authorization (new) | Checked in the `trades` service against the acting player id. The proposer of an offer is always the acting player: the request body has no proposer field, and unknown body fields already fail validation, so an offer in someone else's name cannot be expressed (AC-06b) | here |
+| Error handling | The three kinds of `src/shared/errors.ts`, no new kind from this feature. A request that is wrong on its own, or names a player or title deed that does not exist: `invalid`. A well-formed request that the current state or the acting player's role does not allow (a pending offer already exists, the offer is already answered or expired, the re-check at acceptance fails, the proposer answers their own offer): `conflict`. An offer the acting player is not a side of, or that does not exist: `not_found`, with the same message in both cases (AC-14). The message names the title deed or the side concerned (AC-06, AC-16, AC-17) | CLAUDE.md, ARCHITECTURE.md |
+| Transactions (new) | One helper in `src/shared/db.ts`, used only by a use case that writes in more than one context. Its body is synchronous; a command called inside joins the open transaction | ADR-0002 |
+| Time (new) | The clock is a dependency of `buildApp`. `trades` reads the time only from it. Timestamps are ISO 8601 strings in UTC | §4, choice 4 |
+| Validation | A JSON schema on every route for params, body and response; the domain checks again | CLAUDE.md |
+| ID strategy | `randomUUID()` in the service | existing code in `lobby` and `board` |
+| Money | Whole numbers, stored as SQLite `INTEGER`; a negative or fractional amount is `invalid` (AC-02) | here; owned by `bank` |
+| Logging | The Fastify request logger enabled in `src/index.ts`; an unexpected error is logged by `src/shared/http.ts`. No log line of its own for an offer or an exchange | existing code |
+| Observability | None beyond request logs. The KPIs of PRD §7 are counted from the offers table and by hand during trial games | PRD §7 |
+| Internationalisation | N/A, messages in English | — |
+| Outbox / events | N/A: no event leaves `trades` and nothing tells a player an offer arrived (PRD §3) | — |
+| Rate limiting | None. Offer flooding is bounded by one pending offer per proposer (PRD §6.1) | PRD §6.1 |
 
 ## 9. Architecture decisions
 
-<!-- 🎯 Навіщо: ЗВОРОТНИЙ ІНДЕКС на папку adr/. `ls adr/` дає файли, §9 дає семантику —    -->
-<!--           чому вони існують, до якого зрізу SAD привʼязані, у якому статусі.           -->
-<!-- 📋 Що писати: таблиця з 4 колонками. Один рядок на ADR. Mixed status — це OK.         -->
-<!-- 📌 Приклад: «0001 | Зберігати урок як таблицю блоків | Accepted | §4».                -->
-
 | # | Title | Status | Section |
 |---|---|---|---|
-| <NNNN> | <imperative — e.g. "Use sliding window for rate limiting"> | Accepted | §<N> |
-| <NNNN> | <imperative — e.g. "Co-locate outbox worker in API process"> | Accepted | §<N> |
+| [0001](./adr/0001-own-trade-offers-in-a-new-trades-context.md) | Own trade offers in a new `trades` context | Accepted | §4 |
+| [0002](./adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md) | Run the exchange in one SQLite transaction around guarded commands of `board` and `bank` | Accepted | §4 |
+| [0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md) | Identify the acting player by a player secret that `lobby` issues | Accepted | §4 |
 
-ADR files live under `docs/features/<slug>/adr/NNNN-<title>.md`.
+ADR files live under `docs/features/trade-offers/adr/`. Decisions kept inline because they did not cross the
+blast-radius gate: expiry derived from the clock (§4, choice 4) and no new error kind from this feature (§8).
 
 ## 10. Quality requirements
 
