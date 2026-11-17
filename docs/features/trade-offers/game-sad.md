@@ -298,10 +298,9 @@ A request that carries no valid secret has no code in PRD §10.2, so no branch i
 
 ## 7. Deployment view
 
-<!-- Default: one process, one SQLite file, nothing changes. Then write the N/A marker and one line. Fill it
-only when the feature adds a process, a port, an env variable or a scheduled job. -->
+<!-- N/A: the feature adds no process, port, env variable or scheduled job -->
 
-<!-- N/A: <reason> -->
+Nothing changes: one process, one SQLite file. An offer expires without a job (§8, Time).
 
 ## 8. Crosscutting concepts
 
