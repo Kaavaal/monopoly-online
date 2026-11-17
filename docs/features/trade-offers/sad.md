@@ -147,49 +147,74 @@ listed in §11.
 
 ## 5. Building block view
 
-<!-- 🎯 Навіщо: ВНУТРІШНЯ ДЕКОМПОЗИЦІЯ — модулі, контейнери, БД. Статична топологія:   -->
-<!--           хто з ким може говорити. Без §5 §6 (сценарії) не має словника учасників. -->
-<!-- 📋 Що писати: 1 абзац про стиль (шари/гексагональна/clean/на подіях) +            -->
-<!--           дерево папок + Mermaid C4Container.                                       -->
-<!-- 📌 ОДИН Container на кожну оголошену target_surface (frontmatter): fullstack        -->
-<!--           [backend-service, web-frontend] = backend-API container + web/SPA container; -->
-<!--           [backend-service, mobile-app] = API + mobile app. Container(web, …) нижче — -->
-<!--           лише приклад однієї поверхні; додай/заміни під оголошене у §4. → _shared/surfaces.md -->
-<!-- 📌 Приклад: «web-app, content-api, media-worker, postgres, s3, cdn».                -->
-
-<One paragraph: layered / hexagonal / clean / event-driven. Why.>
+Hexagonal per bounded context, as in the rest of the repo. Trade offers live in a new context, `trades`
+(ADR-0001), which follows the slice anatomy of ARCHITECTURE.md without change. The one declared surface,
+`backend-service`, is the existing Fastify process; the diagram below shows the contexts inside it that this
+feature touches.
 
 **Internal decomposition:**
 
 ```
-<e.g. internal/modules/goals/>
-├── domain/       <entities + sentinel errors>
-├── app/          <use cases / services>
-├── infra/        <repository + outbox impl>
-├── ports/        <HTTP handlers, DTOs, error mapping>
-└── module.go     <self-wiring>
+src/trades/
+├── domain/offer.ts             trade offer type and states, validation, repository interface,
+│                               what an offer needs from lobby, board and bank
+├── app/service.ts              use cases: propose, accept, reject, list incoming, list outgoing
+├── infra/sqlite/offerRepo.ts   repository on node:sqlite
+├── infra/http/routes.ts        routes with JSON schemas; resolves the acting player
+└── module.ts                   builds repo -> service -> routes; exports TradesApi
+migrations/NNNN_trades_offers.sql
+test/trades/offer.test.ts
 ```
+
+Stored states are pending, accepted and rejected. An expired offer is derived from `expires_at` and the clock
+(§4, choice 4). Withdrawn offer and dead offer are glossary terms that are not states in this version (PRD §3).
+
+Outside `trades` the feature changes only wiring: `src/app.ts` creates the `trades` module last and hands it
+`lobby.api`, `board.api`, `bank.api` and the clock; `src/shared/db.ts` gains the transaction helper (ADR-0002);
+`test/helpers/app.ts` lets a test pass a clock. `TradesApi` is empty: no context uses `trades`.
+
+**What `trades` needs from the other contexts.** These are requirements on the prerequisite features, not
+part of this one. The shapes are indicative; the contract stage fixes them.
+
+| Context | Needed through its api | Used for |
+|---|---|---|
+| `lobby` | the player a player secret belongs to (ADR-0003) | every route |
+| `lobby` | whether a player exists; whether two players are in the same room | AC-02, AC-05, AC-18 |
+| `board` | whether a title deed exists, its owner and its room | AC-02, AC-06 |
+| `board` | guarded command: move title deeds between two players, refusing when a giver is not the owner | AC-07, AC-16, AC-19 |
+| `bank` | the balance of a player | AC-06 |
+| `bank` | guarded command: move money between two players, refusing when a payer lacks it | AC-07, AC-17 |
+
+`turns` takes no part. `board` already calls `lobby` to check that an owner is a known player; that call is
+unchanged and not drawn.
 
 **C4 Container (L2):**
 
 ```mermaid
 C4Container
-    title <system> — Containers
+    title Trade offers — Containers
 
-    Person(user, "<User>")
+    Person(proposer, "proposer")
+    Person(recipient, "recipient")
 
-    Container_Boundary(boundary, "<Our System>") {
-        Container(web, "<Web/API container>", "<technology>", "<purpose>")
-        Container(svc, "<Service container>", "<technology>", "<purpose>")
-        ContainerDb(db, "<DB>", "<technology>", "<purpose>")
+    Container_Boundary(game, "monopoly-online backend, one Node.js process") {
+        Container(trades, "trades context", "TypeScript, Fastify routes", "New. Trade offers: propose, accept, reject, list. Opens the exchange transaction")
+        Container(lobby, "lobby context", "TypeScript", "Players, rooms, player secrets")
+        Container(board, "board context", "TypeScript", "Title deeds and their owners")
+        Container(bank, "bank context", "TypeScript", "Money accounts and balances")
     }
 
-    System_Ext(ext, "<External>", "<purpose>")
+    ContainerDb(sqlite, "SQLite database file", "node:sqlite", "One file, each context owns its tables")
 
-    Rel(user, web, "<interaction>", "<protocol>")
-    Rel(web, svc, "<service calls>")
-    Rel(svc, db, "<reads/writes>", "<driver>")
-    Rel(svc, ext, "<emits>", "<protocol>")
+    Rel(proposer, trades, "Makes a trade offer, lists the offers they made", "HTTP, JSON")
+    Rel(recipient, trades, "Lists pending offers addressed to them, accepts or rejects", "HTTP, JSON")
+    Rel(trades, lobby, "Resolves the acting player, checks room membership", "LobbyApi, in-process")
+    Rel(trades, board, "Reads owners, moves title deeds", "BoardApi, in-process")
+    Rel(trades, bank, "Reads balances, moves money", "BankApi, in-process")
+    Rel(trades, sqlite, "Reads and writes trade offers", "SQL")
+    Rel(lobby, sqlite, "Reads players, rooms and secret hashes", "SQL")
+    Rel(board, sqlite, "Reads and writes title deed owners", "SQL")
+    Rel(bank, sqlite, "Reads and writes balances", "SQL")
 ```
 
 ## 6. Runtime view
