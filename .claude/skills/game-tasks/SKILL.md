@@ -63,7 +63,8 @@ goes in the epic's prerequisites table and in `needs` of every task it blocks. I
    `deps` are all in earlier waves. Then `AskUserQuestion`: Accept / Edit waves / Reject. Edit → ask what moves,
    propose again. Reject → ask why and stop.
 4. **Per task.** Copy `templates/task.md` to `game-tasks/<task-slug>.md` and fill it. Size: S = 2 h,
-   M = half a day, L = a day; more, or a slice over ~500 lines, is two tasks. Then run the gate for that task:
+   M = half a day, L = a day; more, or a slice over ~500 lines, is two tasks. Right after writing the file, run
+   the gate for that task:
 
    ```bash
    pnpm exec tsx .claude/skills/game-tasks/scripts/check.ts docs/features/<slug> --task <id>
@@ -71,12 +72,12 @@ goes in the epic's prerequisites table and in `needs` of every task it blocks. I
 
    A red gate means the file is not done: fix the section it names and run it again. The eight gates:
    1. frontmatter complete (`id title layer context deps needs acs codes files_hint estimate status`);
-   2. every `deps` id exists, and the graph stays acyclic;
+   2. every `deps` id exists, and the graph of all files written so far stays acyclic;
    3. at least one AC from game-prd §5 (a `docs` task may have none);
-   4. every relative link in the file resolves, and the file links game-sad.md and the contract (`ports`) or
-      game-data-model.md (`migration`, `infra`);
+   4. every relative link in the file resolves, and the file links game-sad.md and game-contracts/openapi.yaml
+      (`ports`) or game-data-model.md (`migration`, `infra`);
    5. every `codes` entry is in CONTEXT.md § Sentinel errors;
-   6. at least 3 checklist steps, one commit each;
+   6. at least 3 checklist steps, one commit each, no template placeholder left;
    7. a Definition of Done with no template placeholder left, ending on `pnpm check`;
    8. no copy of an upstream artifact (no fenced YAML/JSON/SQL, no Given/When/Then lines), and at most 5000
       tokens (estimated as characters / 4).
@@ -86,12 +87,18 @@ goes in the epic's prerequisites table and in `needs` of every task it blocks. I
 6. **`tasks.json`.** Same model as the markdown, written from it: the fields of the plugin's `implement-tasks`
    contract (`id title layer deps acs dod files_hint`) plus `context`, `needs`, `codes`, and a top-level
    `prerequisites` list. `layer: ports` stays the plugin's name for the slice.
-7. **Self-check.** The same script without `--task` checks every task, the graph against the mermaid edges,
-   that every AC of game-prd §5 is in some `acs` and every CONTEXT.md code in some `codes`. It must exit 0;
-   paste its output into the hand-off.
+7. **Self-check.** The same script without `--task` checks every task, the solid mermaid edges against `deps`
+   and the dotted ones against `needs` (the structural check of the graph; no `mmdc` here), at least one wave
+   with two tasks, every AC of game-prd §5 in some `acs` and every CONTEXT.md code in some `codes`. It must
+   exit 0; paste its output into the hand-off.
 8. **Commit and hand off.** Propose `docs(<slug>): game task breakdown`. Hand off: the number of tasks and
    waves, the prerequisites and what they block, the first wave that can start now, and anything the owner
-   should decide before the first task (open questions of game-prd §11 that a task depends on).
+   should decide before the first task (open questions of game-prd §11 that a task depends on). Next step: the
+   first task of wave 1 in a fresh session, which reads that task file and CONTEXT.md.
+
+Left out on purpose against the plugin skill: no `owner` field (one owner, the game owner), no tracker export
+(`tracker.md` is the tracker), no hand-off to `plan-tests` or `implement-tasks` (they read the plugin's
+`tasks/`, not `game-tasks/`).
 
 ## Never
 

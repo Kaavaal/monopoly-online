@@ -9,10 +9,13 @@ const feature = args[0];
 const at = args.indexOf('--task');
 const only = at >= 0 ? args[at + 1] : undefined;
 if (!feature) throw new Error('usage: check.ts docs/features/<slug> [--task <id>]');
+const root: string = feature;
 const dir = join(feature, 'game-tasks');
 
 const KEYS = ['id', 'title', 'layer', 'context', 'deps', 'needs', 'acs', 'codes', 'files_hint', 'estimate', 'status'];
 const LAYERS = ['migration', 'domain', 'infra', 'ports', 'wiring', 'shared', 'docs'];
+const SCALARS = ['id', 'title', 'layer', 'context', 'estimate', 'status'];
+const PLACEHOLDER = /<[a-z][^>]*>/;
 
 type Task = { file: string; text: string; body: string; fm: Map<string, string> };
 const list = (v: string | undefined): string[] =>
@@ -65,26 +68,29 @@ function cycle(): string | undefined {
 function gates(id: string, t: Task): void {
   console.log(`${id} (${t.file})`);
   const layer = list(t.fm.get('layer'))[0] ?? '';
-  const missing = KEYS.filter((k) => !t.fm.has(k));
+  const missing = KEYS.filter((k) => !t.fm.has(k)).concat(SCALARS.filter((k) => t.fm.has(k) && !list(t.fm.get(k))[0]).map((k) => `${k} (empty)`));
   say(!missing.length && LAYERS.includes(layer), `1 frontmatter${missing.length ? `, missing ${missing.join(' ')}` : ''}, layer ${layer}`);
   const unknown = deps(t).filter((d) => !tasks.has(d));
-  say(!unknown.length, `2 deps [${deps(t).join(', ')}]${unknown.length ? `, unknown ${unknown.join(' ')}` : ''}`);
+  const loop = cycle();
+  say(!unknown.length && !loop, `2 deps [${deps(t).join(', ')}]${unknown.length ? `, unknown ${unknown.join(' ')}` : ''}${loop ? `, cycle ${loop}` : ''}`);
   const acs = list(t.fm.get('acs'));
   const badAcs = acs.filter((a) => !prdAcs.includes(a));
   say((acs.length > 0 || layer === 'docs') && !badAcs.length, `3 acs ${acs.length}${badAcs.length ? `, not in game-prd §5: ${badAcs.join(' ')}` : ''}`);
   const links = [...t.body.matchAll(/\]\(([^)#\s]+)(?:#[^)]*)?\)/g)].map((m) => m[1] ?? '').filter((l) => !/^https?:/.test(l));
-  const dangling = links.filter((l) => !existsSync(resolve(dirname(join(dir, t.file)), l)));
-  const want = layer === 'ports' ? ['game-sad.md', 'openapi.yaml'] : ['migration', 'infra'].includes(layer) ? ['game-data-model.md'] : [];
-  const lacking = want.filter((w) => !links.some((l) => l.endsWith(w)));
+  const here = (l: string): string => resolve(dirname(join(dir, t.file)), l);
+  const dangling = links.filter((l) => !existsSync(here(l)));
+  const want = layer === 'ports' ? ['game-sad.md', 'game-contracts/openapi.yaml'] : ['migration', 'infra'].includes(layer) ? ['game-data-model.md'] : [];
+  const lacking = want.filter((w) => !links.some((l) => here(l) === resolve(root, w)));
   say(!dangling.length && !lacking.length && links.length > 0, `4 links ${links.length}${dangling.length ? `, dangling ${dangling.join(' ')}` : ''}${lacking.length ? `, no link to ${lacking.join(' ')}` : ''}`);
   const own = list(t.fm.get('codes'));
   const badCodes = own.filter((c) => !codes.includes(c));
   say(!badCodes.length, `5 codes ${own.length}${badCodes.length ? `, not in CONTEXT.md: ${badCodes.join(' ')}` : ''}`);
-  const steps = section(t.body, 'Checklist').match(/^\d+\. /gm)?.length ?? 0;
-  say(steps >= 3, `6 checklist ${steps} steps`);
+  const stepLines = section(t.body, 'Checklist').match(/^\d+\. .*$/gm) ?? [];
+  const stepHole = stepLines.some((l) => PLACEHOLDER.test(l));
+  say(stepLines.length >= 3 && !stepHole, `6 checklist ${stepLines.length} steps${stepHole ? ', template placeholder left' : ''}`);
   const dod = section(t.body, 'Definition of Done');
   const boxes = dod.match(/^- \[[ x]\] .*$/gm) ?? [];
-  const placeholder = boxes.some((b) => /<[a-z][^>]*>/.test(b));
+  const placeholder = boxes.some((b) => PLACEHOLDER.test(b));
   say(boxes.length >= 2 && !placeholder && /pnpm check/.test(boxes.at(-1) ?? ''), `7 DoD ${boxes.length} items${placeholder ? ', template placeholder left' : ''}`);
   const copied = /^```(ya?ml|json|sql)/m.test(t.body) || /^\s*(\*\*)?(Given|When|Then)\b/m.test(t.body);
   const tokens = Math.round(t.text.length / 4);
@@ -106,6 +112,21 @@ if (only) {
   const real = new Set([...tasks].flatMap(([id, t]) => deps(t).map((d) => `${d}>${id}`)));
   const off = [...real].filter((e) => !drawn.has(e)).concat([...drawn].filter((e) => !real.has(e)));
   say(!off.length, `mermaid edges ${drawn.size} = deps ${real.size}${off.length ? `, differ ${off.join(' ')}` : ''}`);
+  const dotted = new Set([...epic.matchAll(/^\s*(P\d+)\s*-\.->\s*(T\d+)\s*$/gm)].map((m) => `${m[1]}>${m[2]}`));
+  const needed = new Set([...tasks].flatMap(([id, t]) => list(t.fm.get('needs')).map((n) => `${n}>${id}`)));
+  const offNeeds = [...needed].filter((e) => !dotted.has(e)).concat([...dotted].filter((e) => !needed.has(e)));
+  say(!offNeeds.length, `dotted edges ${dotted.size} = needs ${needed.size}${offNeeds.length ? `, differ ${offNeeds.join(' ')}` : ''}`);
+  const depth = new Map<string, number>();
+  const level = (id: string): number => {
+    const known = depth.get(id);
+    if (known !== undefined) return known;
+    const d = Math.max(0, ...deps(tasks.get(id) as Task).filter((x) => tasks.has(x)).map((x) => level(x) + 1));
+    depth.set(id, d);
+    return d;
+  };
+  const waves = loop ? [] : [...tasks.keys()].map(level);
+  const widest = Math.max(0, ...waves.map((w) => waves.filter((x) => x === w).length));
+  say(widest >= 2, `${new Set(waves).size} waves, widest has ${widest} tasks in parallel`);
 
   const covered = new Set([...tasks.values()].flatMap((t) => list(t.fm.get('acs'))));
   const gap = prdAcs.filter((a) => a && !covered.has(a));
@@ -114,13 +135,15 @@ if (only) {
   const silent = codes.filter((c) => c && !raised.has(c));
   say(!silent.length, `CONTEXT.md codes raised ${codes.length - silent.length} of ${codes.length}${silent.length ? `, never ${silent.join(' ')}` : ''}`);
 
-  type Json = { tasks: { id: string; deps: string[]; acs: string[]; codes: string[]; needs: string[]; files_hint: string[] }[]; prerequisites: { id: string }[] };
+  type Json = { tasks: { id: string; title: string; layer: string; deps: string[]; acs: string[]; codes: string[]; needs: string[]; files_hint: string[] }[]; prerequisites: { id: string }[] };
   const json = JSON.parse(readFileSync(join(dir, 'tasks.json'), 'utf8')) as Json;
   const fields = ['deps', 'acs', 'codes', 'needs', 'files_hint'] as const;
   const drift = json.tasks
     .filter((j) => {
       const t = tasks.get(j.id);
-      return !t || fields.some((f) => JSON.stringify(list(t.fm.get(f))) !== JSON.stringify(j[f]));
+      const scalar = (k: string): string | undefined => t?.fm.get(k)?.replace(/^"|"$/g, '');
+      return !t || fields.some((f) => JSON.stringify(list(t.fm.get(f))) !== JSON.stringify(j[f])) ||
+        scalar('title') !== j.title || scalar('layer') !== j.layer;
     })
     .map((j) => j.id);
   if (json.tasks.length !== tasks.size) drift.push(`${json.tasks.length} in json vs ${tasks.size} files`);
