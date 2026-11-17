@@ -18,7 +18,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "arch:check": "depcruise --config .dependency-cruiser.cjs src",
-    "check": "pnpm typecheck && pnpm test && pnpm arch:check"
+    "check": "pnpm typecheck && pnpm test && pnpm arch:check",
+    "contract:types": "openapi-typescript docs/features/trade-offers/contracts/openapi.yaml -o test/contracts/trade-offers.api.ts"
   },
   "dependencies": {
     "fastify": "5.12.7"
@@ -27,6 +28,7 @@
     "@anthropic-ai/claude-agent-sdk": "0.3.310",
     "@types/node": "24.19.2",
     "dependency-cruiser": "18.7.0",
+    "openapi-typescript": "7.13.0",
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vitest": "5.0.5"
