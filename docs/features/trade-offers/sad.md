@@ -226,7 +226,7 @@ one the three quality goals are about. The `complete-sequence-diagrams` stage ad
 
 ### Critical flow 1: accept a trade offer
 
-PRD AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19.
+PRD AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19, AC-19b.
 
 ```mermaid
 sequenceDiagram
@@ -270,6 +270,7 @@ sequenceDiagram
 ```
 
 The first refusal ends the flow: later steps do not run, and the rollback undoes any step that already wrote.
+The branches run in the order PRD §5 fixes in "Which refusal applies when several do".
 Nothing between "begin the transaction" and "commit" or "roll back" awaits, so a second acceptance that
 competes for the same title deed or the same money starts after this one has finished and takes the refused
 branch (ADR-0002).
@@ -462,8 +463,9 @@ sequenceDiagram
 | AC-17 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
 | AC-18 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
 | AC-19 | `Critical flow 1: accept a trade offer` | branch | the second acceptance takes the same refused branch, see the paragraph under the diagram |
+| AC-19b | `Critical flow 1: accept a trade offer` | branch | the same as AC-19, with money the payer cannot cover twice |
 
-Coverage: 7/7 user stories · 21/21 ACs — 0 non-runtime N/A.
+Coverage: 7/7 user stories · 22/22 ACs — 0 non-runtime N/A.
 
 **Flags:**
 - Participants are the contexts of §5 (`trades`, `lobby`, `board`, `bank`, the SQLite file), as in critical
@@ -531,9 +533,10 @@ Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. All sce
   offer.
 
 **QG-2. Concurrency correctness**
-- **When:** two pending offers give away the same title deed and both recipients accept at the same moment.
-- **Then:** "of 2 acceptances competing for one title deed, exactly 1 goes through, in 100 of 100 repetitions"
-  (PRD §6); the other is refused as in AC-16, and the invariants of QG-1 hold.
+- **When:** two pending offers give away the same title deed, or money one player cannot pay twice, and both
+  are accepted at the same moment.
+- **Then:** "exactly 1 goes through, in 100 of 100 repetitions of each case" (PRD §6); the other is refused as
+  in AC-16 or AC-17, and the invariants of QG-1 hold.
 - **How verify:** a repeated automated test, 100 repetitions, each on a fresh app: the two acceptance requests
   are sent together and the test expects one success, one `conflict` and the QG-1 invariants. Under ADR-0002
   two requests in one process cannot interleave, so this test guards the design (it fails if an `await` is
@@ -552,8 +555,9 @@ Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. All sce
 - **When:** a player makes or answers an offer, or lists their offers.
 - **Then:** "p95 ≤ 250 ms" for making or answering an offer and "p95 ≤ 150 ms" for listing a player's offers
   (PRD §6).
-- **How verify:** the "server-side duration of the propose, accept and reject actions" and of "the two list
-  actions", "sampled in the automated test run" (PRD §6). The PRD gives no sample size; the test plan sets it.
+- **How verify:** the server-side duration of the propose, accept and reject actions and of the two list
+  actions, "at least 100 calls of each in one automated run, in a room of 8 players where the acting player
+  already has 50 ended offers" (PRD §6).
 
 Availability: N/A. The product has no production deployment and no SLO window yet (PRD §6).
 
@@ -561,12 +565,12 @@ Availability: N/A. The product has no production deployment and no SLO window ye
 
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| With no signal that an offer arrived, the recipient does not notice it, offers expire and players give up trading | Medium | Over the first five trial tables, look at the share of expired offers; if it is above 40%, bring the arrival signal back into the plan. That is the point at which the Answered offers KPI of PRD §7 (at least 60% answered) is missed | Kaavaal |
+| With no signal that an offer arrived, the recipient does not notice it, offers expire and players give up trading | Medium | Over the first five trial games, look at the share of expired offers; if it is above 40%, bring the arrival signal back into the plan. That is the point at which the Answered offers KPI of PRD §7 (at least 60% answered) is missed | Kaavaal |
 | None of the four prerequisites exists in the code: rooms with their players, money accounts, title deeds that belong to one room, the player secret. Trade offers can be neither built nor tested before them | High | Each is a separate feature. Their order is an open question of PRD §8, due before `/sdlc:break-tasks`. §5 lists what `trades` needs from each api | Kaavaal |
 | Two PRDs describe this feature and disagree: `PRD.md` and `game-prd.md` differ in the latency targets, in whether the recipient's money is checked when an offer is made, and in the numbering of acceptance criteria. This document follows `PRD.md` only | Medium | Bring the two into line or retire one before `/sdlc:break-tasks`; then re-check §10 against the surviving numbers | Kaavaal |
 | Today anyone can change the owner of a title deed through the existing `board` route, past the guarded command of ADR-0002 | Medium | The prerequisite feature for title deeds that belong to one room restricts or removes that path; until then the QG-1 invariants hold only for changes made through `trades` | Kaavaal |
 | Atomicity and the single winner of a race rest on a convention no tool checks: nothing awaits between the start and the end of the exchange transaction. The QG-2 test guards it and does not search for races | Medium | Review; the QG-2 repeated test; the rule is written in §8 and ADR-0002 | Kaavaal |
-| The player secret travels over plain HTTP, cannot be rotated or revoked, and guesses are not rate-limited | Low | Accepted for trial tables on one local network (ADR-0003). Revisit before the backend is reachable from outside it | Kaavaal |
+| The player secret travels over plain HTTP, cannot be rotated or revoked, and guesses are not rate-limited | Low | Accepted for trial games on one local network (ADR-0003). Revisit before the backend is reachable from outside it | Kaavaal |
 | The exchange transaction spans writes of three contexts and works only while they share one database file | Low | Recorded in ADR-0002; a context that moves to its own store turns the exchange into a saga | Kaavaal |
 | The PRD states no effort budget (§2) | Low | Set when the work is broken down at `/sdlc:break-tasks` | Kaavaal |
 | The current architecture was read from ARCHITECTURE.md and the code at commit `338436d`; there is no `docs/architecture-map.md`, and the prerequisite features will change `lobby`, `board` and `bank` before this one is built | Low | Run `/sdlc:map-architecture`; re-read §5 against the real apis once the prerequisites land | Kaavaal |
@@ -580,7 +584,7 @@ No architectural decision was left open in this pass. The open questions of PRD 
 - An offer that can no longer be honoured stays a pending offer until it expires (PRD §3). If refused
   acceptances pass 10% of attempts, closing such offers comes back (PRD §7).
 - The one-coin dump is allowed (PRD §6.1).
-- The offer lifetime is one constant in `trades`; changing it after trial tables is a one-line change.
+- The offer lifetime is one constant in `trades`; changing it after the trial games is a one-line change.
 
 ## 12. Glossary
 
@@ -601,6 +605,7 @@ acting player.
 | dead offer, withdrawn offer | Glossary terms for behaviour that is not part of this version; neither is a state here |
 | room | The group of players who play one game together on one board; trade offers are possible only inside one room |
 | color group | The fixed set of title deeds of one color, as defined by the rules of the game |
+| trial game | One playtest session of one room, played to the end or not; the base of two PRD §7 KPIs. Not a room |
 | acting player | The player a request is made by, established from the player secret; never taken from a player id named in the request |
 | player secret | A random value `lobby` issues once when a player is created and that proves who is acting. Not the player's `token`, which is the piece on the board |
 | exchange | What an acceptance carries out: every title deed and all money named in a trade offer change hands in one transaction |
