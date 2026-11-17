@@ -185,6 +185,4 @@ failure cases the PRD implies beyond them:
   here too; each repetition is in memory.
 - Before a release, or on a schedule: load. It is outside the suite that gates a commit, because a time
   threshold fails on a busy machine without a change in the code.
-- Follow-up for the owner: `sad.md` §10 QG-4 and task T13 put the latency measurement in the same test file
-  and the same definition of done as the correctness scenarios. They need one line each to match this
-  placement.
+- Owners in `tasks/`: T8–T13 write the integration rows, T13 the load run, T14 the contract rows.
