@@ -19,6 +19,8 @@ feature: "<slug>"
 |---|---|---|---|
 | <yes/no: why> | <yes/no: which> | <yes/no> | <yes/no: which migration or table> |
 
+<n> of 4. <Only for 1 of 4 with Database yes: "Locked as an ADR by the owner.">
+
 ## Drivers
 
 <!-- Each bullet cites a QG from SAD §1, a PRD §6 row, a PRD AC or a repo rule. Nothing else. -->

@@ -36,14 +36,15 @@ Check, and report only what is wrong:
 1. **Strategy.** A later section contradicts a §4 choice or an ADR: a flow in §6 that skips the transaction
    an ADR requires, a container in §5 no §4 choice explains.
 2. **Edits.** Every edit in the log appears in the document as its `after` text.
-3. **Gate.** Each ADR scores 2 of 4 or more in its own table, or is a change to `ARCHITECTURE.md`. No ADR
+3. **Gate.** Each ADR scores 2 of 4 or more in its own table, or is a change to `ARCHITECTURE.md`, or scores 1
+   of 4 on Database and says the owner locked it. No ADR
    for something `CLAUDE.md` already fixes. No option that a repo rule rules out. File name is
    `NNNN-<ctx>-<decision>.md` with a decision, not a topic. Links has PRD, SAD section, related ADR and
    migration lines.
 4. **Context map.** The §5 delta keeps the graph acyclic in the creation order of `src/app.ts`; a context
    reaches another only through its api; no context reads another's tables.
-5. **Flows and refusals.** Every §6 participant is a §5 container. Every PRD §9 transition that crosses a
-   context is drawn here or named as left to the next stage. Every refusing branch carries a code that exists
+5. **Flows and refusals.** Every §6 participant is a §5 container. Every PRD §9 transition (without §9, every
+   state change the AC describe) that crosses a context is drawn here or named as left to the next stage. Every refusing branch carries a code that exists
    in PRD §10.2 with the same kind (when the PRD has no §10.2, a kind from `src/shared/errors.ts` that
    matches the AC), and no code is invented.
 6. **Numbers.** Every number in §10 appears in PRD §6 as written. §2 versions match `package.json` and

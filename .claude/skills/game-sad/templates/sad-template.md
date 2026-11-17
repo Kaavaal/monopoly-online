@@ -133,9 +133,11 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- One sequenceDiagram per PRD §9 transition that crosses a context boundary; at most two here for S, the
+<!-- One sequenceDiagram per PRD §9 transition (or, without §9, per state change the AC describe) that
+crosses a context boundary; at most two here for S, the
 rest go to complete-sequence-diagrams. Participants are §5 containers. Messages are semantic ("move the
-title deeds"), no HTTP verbs, paths or status numbers. Each refusing alt branch ends with its §10.2 code. -->
+title deeds"), no HTTP verbs, paths or status numbers. Each refusing alt branch ends with its §10.2 code, or with
+its kind from src/shared/errors.ts when the PRD has no §10.2. -->
 
 **Flow 1: <transition from PRD §9>** (<AC ids>)
 
@@ -167,7 +169,7 @@ restate CLAUDE.md say "kept" and link it. -->
 
 | Concept | Rule in this feature | Where |
 |---|---|---|
-| Refusals | <kinds from errors.ts; codes `<ctx>.<error_name>` from PRD §10.2> | <PRD §10.2, src/shared/errors.ts> |
+| Refusals | <kinds from errors.ts; codes `<ctx>.<error_name>` from PRD §10.2, none invented when it is absent> | <PRD §10.2, src/shared/errors.ts> |
 | Acting player | <how a request says who acts> | <ADR or §4> |
 | Transactions | <what runs in one transaction; no await inside> | <ADR or src/shared/db.ts> |
 | Time | <where the clock comes from, how tests set it> | <...> |

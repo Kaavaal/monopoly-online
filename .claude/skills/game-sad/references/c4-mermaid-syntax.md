@@ -48,7 +48,7 @@ C4Container
 
 ## §6 sequences
 
-Participants are §5 containers, aliased to short ids. A refusing branch ends with its code.
+Participants are §5 containers, aliased to short ids. A refusing branch ends with its code from PRD §10.2, or its kind when the PRD has none.
 
 ```mermaid
 sequenceDiagram

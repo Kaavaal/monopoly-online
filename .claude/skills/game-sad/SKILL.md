@@ -5,8 +5,8 @@ description: >
   views, plus ADRs for the decisions that are painful to reverse. Same flow as the SDLC architecture-design
   skill (read inputs, bootstrap, draft, walk each section, gate decisions into ADRs, commit per section,
   clean-context critic), tuned to this backend: contexts and the context map instead of generic modules, a
-  fourth ADR criterion for the database, §6 flows drawn from the PRD state table with refusal codes on every
-  branch. Writes docs/features/<slug>/game-sad.md and docs/features/<slug>/game-adr/. Use on
+  fourth ADR criterion for the database, §6 flows drawn from the PRD state table (or its AC) with a refusal code or kind
+  on every branch. Writes docs/features/<slug>/game-sad.md and docs/features/<slug>/game-adr/. Use on
   "/game-sad <slug>", "game SAD for <feature>".
 argument-hint: <slug>
 ---
