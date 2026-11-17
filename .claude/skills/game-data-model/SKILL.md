@@ -64,7 +64,8 @@ sdlc/plugin"), write `templates/rules-migrations-baseline.md` there and tell the
 From PRD §4–§5, the SAD's §5 (which context owns what) and the glossary in `CONTEXT.md`, list each entity
 with its owning context and its table name: the glossary term in plural snake_case (`trade offer` →
 `trade_offers`). An entity that belongs to a prerequisite feature gets the smallest table that this feature
-needs and a line saying which feature owns the rest. Ask the owner to confirm the list and the aggregates
+needs and a line saying which feature owns the rest. Its pairs are staged here so the rehearsal can run, but
+the owning feature promotes them (CLAUDE.md: one feature touches one context); the promote order says so. Ask the owner to confirm the list and the aggregates
 (which table's rows die with which).
 
 ### 3. Columns
@@ -86,9 +87,9 @@ three commits, each promoted with its code:
 
 | Step | SQL | Code that ships with it |
 |---|---|---|
-| expand | `ALTER TABLE t ADD COLUMN c TEXT` (nullable: SQLite cannot add `NOT NULL` without a default) | writes `c` on every insert and update; for a rename, writes both columns |
-| backfill | one `UPDATE` with a `WHERE c IS NULL` guard; a companion `backfill-<column>.md` with the row count, how to check it and how to undo it | none |
-| contract | table rebuild, see `templates/table-rebuild.sql`: create `t_new` with every column, constraint and index of the live `t` copied, `INSERT ... SELECT`, drop, rename, recreate indexes. A drop of an unindexed column may use `ALTER TABLE ... DROP COLUMN` instead | stops reading the old column |
+| expand, `templates/expand.sql` | `ALTER TABLE t ADD COLUMN c TEXT` (nullable: SQLite cannot add `NOT NULL` without a default) | writes `c` on every insert and update; for a rename, writes both columns |
+| backfill, `templates/backfill.sql` | one `UPDATE` with a `WHERE c IS NULL` guard; a companion from `templates/backfill-column.md` with the row count, how to check it and how to undo it | none |
+| contract, `templates/table-rebuild.sql` | table rebuild: create `t_new` with every column, constraint and index of the live `t` copied, `INSERT ... SELECT`, drop, rename, recreate indexes. A drop of an unindexed column may use `ALTER TABLE ... DROP COLUMN` instead | stops reading the old column |
 
 Confirm with the owner that the three steps are wanted (a solo game with no live players may accept one
 step; record that choice). The contract step names the commit of the code it waits for.
@@ -128,10 +129,12 @@ so instead of proposing a fix.
 3. Each FK column leads an index or the PK.
 4. No new `CHECK`, `TRIGGER`, business `DEFAULT`: `grep -nE 'CHECK|TRIGGER|DEFAULT'` over the staged ups,
    each hit is either copied from a live file (say which) or a failure.
-5. Rehearsal: `pnpm exec tsx .claude/skills/game-data-model/scripts/roundtrip.ts docs/features/<slug>/game-migrations <scratch>.db`.
-   It applies the live migrations through the real runner, adds one sample row per existing table, then
-   runs ups, downs in reverse and ups again, and compares schema by pragma and every row. Both lines must
-   say `same`. The scratch file lives outside the repo or matches `*.db` in `.gitignore`.
+5. Rehearsal: `pnpm exec tsx .claude/skills/game-data-model/scripts/roundtrip.ts docs/features/<slug>/game-migrations`,
+   and once more with `docs/features/<slug>/game-migrations/_drift` added when it holds pairs. It applies the
+   live migrations through the real runner, adds one sample row per existing table, then runs ups, downs in
+   reverse and ups again, and compares each table's stored DDL (quotes and layout ignored, so a lost `CHECK`
+   shows), its pragmas and every row. Both lines must say `same`. The scratch file is
+   `roundtrip-scratch.db` (ignored by `*.db`); `--db` takes another name starting with `roundtrip`.
 
 Any failure: fix it, or show it to the owner. Never commit past a failure.
 

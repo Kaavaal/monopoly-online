@@ -3,6 +3,8 @@ paths:
   - "migrations/**"
   - "docs/features/**/game-migrations/**"
   - "docs/features/**/game-data-model.md"
+  - "docs/features/**/migrations/**"
+  - "docs/features/**/data-model.md"
 ---
 
 # Migrations
@@ -18,6 +20,8 @@ SQLite through `node:sqlite`. Runner: `pnpm migrate` (`src/shared/migrate.ts`), 
   promoted with, plus `NNNN_<context>_<name>.down.sql`. The down file never goes to `migrations/`: it is
   for the up/down/up rehearsal (`.claude/skills/game-data-model/scripts/roundtrip.ts`).
 - One file changes one context's tables.
+- Pairs staged by the SDLC plugin (`<timestamp>_<verb>_<entity>.up.sql`) are renamed to the live form when
+  promoted; the rehearsal script reads both forms.
 
 ## Columns
 
