@@ -1,325 +1,217 @@
 ---
 status: Draft
-owner: "<Architect name>"
-reviewers: ["<Tech Lead name>"]
+owner: "<game owner>"
 updated_at: "<YYYY-MM-DD>"
-feature_size: M
+feature_size: "<from .size, S when absent>"
 stage: "04-05"
-ticket: "<ticket-id>"
-target_surfaces: []  # filled in §4 — subset of: backend-service | web-frontend | mobile-app | desktop-app | cli | worker | library-sdk. Read (never re-derived) by api-forge/complete-sequence-diagrams/break-tasks/plan-tests/review-feature → _shared/surfaces.md
+prd: "<game-prd.md | PRD.md>"
+target_surfaces: [backend-service]
 ---
 
-# Software Architecture Document — <system / feature>
+# SAD: <feature name>
 
-<!-- Stages 04-05 → see sdlc/plugin/skills/architecture-design/SKILL.md -->
-<!-- 12 Arc42 sections. Empty sections — <!-- N/A: <one-line reason> -->. -->
-<!-- C4 Context (L1) lives inline in §3. C4 Container (L2) lives inline in §5. -->
-<!-- §6 Runtime view seeds the primary flow(s) here; complete-sequence-diagrams (stage 06) then -->
-<!--    fills §6 with every critical flow / §5 AC — no cap. -->
-<!-- Numbers in §10 come VERBATIM from PRD §6 NFR — no inventing, no rounding. -->
+> Inputs: [PRD](./<PRD file>) · [CONTEXT](./CONTEXT.md) · [ARCHITECTURE.md](../../../ARCHITECTURE.md) ·
+> ADRs in [game-adr/](./game-adr/)
 
 ## 1. Introduction and goals
 
-<!-- 🎯 Навіщо: стабільна памʼять про «що + три головні якості + хто зацікавлений».     -->
-<!--           Через рік ніхто не згадає на словах, ЯКІ ТРИ ЯКОСТІ для системи критичні. -->
-<!-- 📋 Що писати: 1 абзац intent + 3 рядки топ-3 якості + таблиця stakeholders.        -->
-<!-- 📌 Приклад: «QG-1: швидкість редагування блоку p95 ≤500 мс»                         -->
+<!-- One paragraph: what players can do after this feature, from PRD §1-§2. Then three quality goals as
+QG-1..QG-3, each one line, each backed by a PRD §6 row. Money and title deed integrity come first whenever the
+feature moves them. Stakeholders are the glossary roles plus the game owner. -->
 
-**Intent.** <One paragraph from PRD §Goals — what we're building and for whom.>
+**Quality goals**
 
-**Top-3 quality goals (1-liners; full scenarios in §10):**
+1. QG-1 <one line>
+2. QG-2 <one line>
+3. QG-3 <one line>
 
-1. <e.g. "Availability under partial failure of downstream module">
-2. <e.g. "Performance for EM dashboard under team-scale growth">
-3. <e.g. "Recoverability of checkpoints with <30 min RTO">
+**Stakeholders**
 
-**Stakeholders.**
+| Role | Interest |
+|---|---|
+| <glossary role> | <what they do in this feature> |
+| game owner | approves this document and the ADRs |
 
-| Role | Interest | Sign-off owner? |
-|---|---|---|
-| <e.g. IC> | <feature usage> | No |
-| <e.g. EM> | <dashboard reads> | No |
-| <e.g. Tech Lead> | <SAD approval> | Yes |
+Decisions kept against the critic:
 
-<!-- Decision overrides (¶4) — populated by the Step-7 critic resolution loop, empty otherwise.       -->
-<!-- Each: «Decision override: <headline> — rationale: <reason>» so downstream skills see the choice.  -->
+<!-- One line per finding the owner kept, with their reason. Delete the heading if none. -->
 
 ## 2. Constraints
 
-<!-- 🎯 Навіщо: §4 (стратегія) працює тільки коли §2 зафіксувала, ЩО ВЖЕ ЗАФІКСОВАНО:    -->
-<!--           стек, версії, дедлайн, регуляторні вимоги. Це вхід, не вихід.             -->
-<!-- 📋 Що писати: чотири блоки — Технічні / Організаційні / Конвенції / Регуляторні.     -->
-<!-- 📌 Приклад: «Postgres 18» (не «Postgres»); «дедлайн Q3 — жорсткий» (не «бажано»).    -->
+<!-- Versions exactly as package.json and .nvmrc state them. Repo rules from CLAUDE.md and ARCHITECTURE.md
+that this feature must keep, one line each. Then what the PRD fixes (prerequisite features, no deadline, and
+so on). -->
 
-**Technical.**
-- <Language + version, e.g. Go 1.26>
-- <Framework + version, e.g. chi v5.1, pgx v5.7>
-- <Datastore + version, e.g. Postgres 18>
-- <Architecture convention, e.g. hexagonal per CLAUDE.md>
+**Stack**: Node <.nvmrc>, TypeScript <version>, Fastify <version>, `node:sqlite`, vitest <version>, pnpm
+<version>.
 
-**Organisational.**
-- <Effort budget, e.g. 3 person-weeks>
-- <Deadline, e.g. 2026-Q3 hard>
-- <Team composition, e.g. 1 backend + 0.5 frontend>
+**Repo rules**
 
-**Conventions.**
-- <Link to CLAUDE.md or project conventions>
-- <Naming, ID strategy, error-handling pattern>
+- <one feature touches one context; others through `<Ctx>Api` from `module.ts`>
+- <migrations `NNNN_<ctx>_<name>.sql`, frozen once applied>
+- <`pnpm check` green before every commit>
 
-**Regulatory / external.**
-- <e.g. GDPR — user deletion behavior per ADR-NNNN>
-- <e.g. SOC2, PCI — applicable controls>
+**From the PRD**
+
+- <prerequisites, order, what is out of scope>
 
 ## 3. Context and scope
 
-<!-- 🎯 Навіщо: малює КОРДОН СИСТЕМИ — хто з нею говорить ззовні, де закінчується зона довіри. -->
-<!--           Без §3 §5 і §8 (авторизація) розпливаються — неясно, що «всередині», а що «зовні». -->
-<!-- 📋 Що писати: 2-3 речення бізнес-контексту + таблиця зовнішніх систем + Mermaid C4Context. -->
-<!-- 📌 Приклад: «зовнішні — нема (свідома відмова від third-party у v1)» — це теж рішення.   -->
-<!-- Кордон довіри (trust boundary) — лінія, за якою ти не довіряєш даним без перевірки.       -->
+<!-- Two or three sentences on who talks to the backend and where trust ends (the HTTP interface: neither
+the body nor "I am player X" is trusted without a check). Actors are glossary roles only. External systems:
+none today; if none, say so as a decision. -->
 
-<Business context in 2-3 sentences. What the system does for whom.>
-
-**External systems (in / out):**
-
-| Actor or system | Type | Interaction |
-|---|---|---|
-| <e.g. IC> | Person | Creates goals, adds checkpoints |
-| <e.g. notification-service> | System (internal) | Receives cron registration |
-| <e.g. Identity Provider> | System (external) | Provides JWT tokens |
-
-**C4 Context (L1):**
+**External systems**: <none, as a decision of this version | name and why>
 
 ```mermaid
 C4Context
-    title <system> — System Context
+    title <feature> — System Context
 
-    Person(user, "<User>", "<role + intent>")
-    System(system, "<Our System>", "<one-sentence description>")
-    System_Ext(ext, "<External system>", "<one-sentence description>")
+    Person(<role>, "<glossary role>", "<what they do>")
+    System(game, "monopoly-online backend", "One Node.js process, one SQLite file")
 
-    Rel(user, system, "<interaction>", "<protocol>")
-    Rel(system, ext, "<interaction>", "<protocol>")
+    Rel(<role>, game, "<what they do>", "HTTP, JSON")
 ```
 
 ## 4. Solution strategy
 
-<!-- 🎯 Навіщо: 3-4 СТРАТЕГІЧНІ СТОВПИ, з яких потім ростуть усі ADR. Без §4 кожен ADR    -->
-<!--           виглядає випадковим — нема зонтика. ⭐ Найгустіша секція — тут ADR-gate    -->
-<!--           спрацьовує майже завжди (рішення незворотні + мульти-модульні).            -->
-<!-- 📋 Що писати: спершу Target surface(s), потім 3-4 стратегічні вибори.                -->
-<!--           На кожен — заголовок + 2-3 речення rationale.                              -->
-<!-- 📌 ПЕРШЕ рішення §4 — Target surface(s): ЩО САМЕ будуємо. Записується у frontmatter   -->
-<!--           target_surfaces: [...] і гейтить §5 (один контейнер на поверхню) + усі       -->
-<!--           наступні стадії. Деривиться з PRD §1 «для кого» + §4 ролей. → _shared/surfaces.md -->
-<!-- 📌 Приклад: «Зберігати урок як таблицю блоків» — стовп, з якого виросло ADR-0001.    -->
+<!-- 2-4 choices, each a heading line plus 2-3 sentences of why, tied to a QG or a §2 constraint. The first
+is always "which context owns the feature's data". Mark each one with its ADR or "inline". -->
 
-**Target surface(s) (the first decision — what's being built):** `<e.g. [backend-service, web-frontend]>`
-<!-- Mirror this list into the frontmatter `target_surfaces`. For each declared UI surface          -->
-<!-- (web-frontend / mobile-app / desktop-app) add a UI-architecture choice below (web → SSR/SPA/   -->
-<!-- hybrid; mobile → native/cross-platform). Multi-surface is usually an ADR (multi-module +       -->
-<!-- irreversible). The UI reuses the repo's existing design system / components / tokens from       -->
-<!-- architecture-map.md §Frontend — it does not design greenfield. → _shared/surfaces.md           -->
+**Surface**: backend-service.
 
-**Top strategic choices (the seeds for ADRs):**
-
-1. **<e.g. Module isolation through events>** — <2-3 sentences rationale referencing Quality Goals and constraints>.
-2. **<e.g. Single-store persistence (Postgres)>** — <2-3 sentences>.
-3. **<e.g. UI-architecture: SPA consuming the backend API>** — <per declared UI surface; 2-3 sentences>.
-
-Each tactical decision in later sections should be traceable to one of these strategic seeds. Tactical decisions that *contradict* a strategic choice are red flags — surface them in §11 Risks.
+1. **<choice>** (<ADR-NNNN | inline>): <why>.
+2. **<choice>** (<ADR-NNNN | inline>): <why>.
 
 ## 5. Building block view
 
-<!-- 🎯 Навіщо: ВНУТРІШНЯ ДЕКОМПОЗИЦІЯ — модулі, контейнери, БД. Статична топологія:   -->
-<!--           хто з ким може говорити. Без §5 §6 (сценарії) не має словника учасників. -->
-<!-- 📋 Що писати: 1 абзац про стиль (шари/гексагональна/clean/на подіях) +            -->
-<!--           дерево папок + Mermaid C4Container.                                       -->
-<!-- 📌 ОДИН Container на кожну оголошену target_surface (frontmatter): fullstack        -->
-<!--           [backend-service, web-frontend] = backend-API container + web/SPA container; -->
-<!--           [backend-service, mobile-app] = API + mobile app. Container(web, …) нижче — -->
-<!--           лише приклад однієї поверхні; додай/заміни під оголошене у §4. → _shared/surfaces.md -->
-<!-- 📌 Приклад: «web-app, content-api, media-worker, postgres, s3, cdn».                -->
+<!-- The slice anatomy from ARCHITECTURE.md filled for this feature, then the context map delta, then the
+api table, then the container diagram. Names from the "Containers this repo already has" table in SKILL.md. -->
 
-<One paragraph: layered / hexagonal / clean / event-driven. Why.>
-
-**Internal decomposition:**
+**Slice**
 
 ```
-<e.g. internal/modules/goals/>
-├── domain/       <entities + sentinel errors>
-├── app/          <use cases / services>
-├── infra/        <repository + outbox impl>
-├── ports/        <HTTP handlers, DTOs, error mapping>
-└── module.go     <self-wiring>
+src/<ctx>/
+├── domain/<entity>.ts
+├── app/service.ts
+├── infra/sqlite/<entity>Repo.ts
+├── infra/http/routes.ts
+└── module.ts
+migrations/<next free NNNN>_<ctx>_<name>.sql
+test/<ctx>/<entity>.test.ts
 ```
 
-**C4 Container (L2):**
+**Context map delta**
+
+| Context | Owns | Uses before | Uses after |
+|---|---|---|---|
+| <ctx> | <tables> | <...> | <...> |
+
+Creation order in `src/app.ts` after this feature: <lobby, board, bank, turns, ...>.
+
+**Api calls across a boundary**
+
+| From | To | Call | Reads or writes | PRD AC |
+|---|---|---|---|---|
+| <ctx> | <ctx> | <what it asks, in words> | <read | write> | <AC ids> |
 
 ```mermaid
 C4Container
-    title <system> — Containers
+    title <feature> — Containers
 
-    Person(user, "<User>")
+    Person(<role>, "<glossary role>")
 
-    Container_Boundary(boundary, "<Our System>") {
-        Container(web, "<Web/API container>", "<technology>", "<purpose>")
-        Container(svc, "<Service container>", "<technology>", "<purpose>")
-        ContainerDb(db, "<DB>", "<technology>", "<purpose>")
+    Container_Boundary(game, "monopoly-online backend, one Node.js process") {
+        Container(<ctx>, "<ctx> context", "TypeScript", "<what it owns>")
     }
 
-    System_Ext(ext, "<External>", "<purpose>")
+    ContainerDb(sqlite, "SQLite file", "node:sqlite", "Each context owns its tables")
 
-    Rel(user, web, "<interaction>", "<protocol>")
-    Rel(web, svc, "<service calls>")
-    Rel(svc, db, "<reads/writes>", "<driver>")
-    Rel(svc, ext, "<emits>", "<protocol>")
+    Rel(<role>, <ctx>, "<what they do>", "HTTP, JSON")
+    Rel(<ctx>, sqlite, "<reads and writes what>", "SQL")
 ```
 
 ## 6. Runtime view
 
-<!-- 🎯 Навіщо: ПОТІК У RUNTIME для 1-2 критичних сценаріїв. Хто з ким коли і у якому     -->
-<!--           порядку говорить. Без §6 §5 — лише купа коробок без життя.                  -->
-<!-- 📋 Що писати: Mermaid sequenceDiagram. Учасники — імена з §5 (не вигадуй нові!).      -->
-<!--           Повідомлення семантичні («складає чорновик»), БЕЗ HTTP-методів/шляхів —     -->
-<!--           ендпоінт-рівневі sequence-діаграми зʼявляться у stage 06 (api-forge).        -->
-<!-- ⏳ RESERVED FOR SEQUENCES: architecture-design сіє лише primary flow(s) тут.          -->
-<!--           complete-sequence-diagrams (stage 06) ДОПОВНЮЄ §6 кожним критичним flow /    -->
-<!--           кожним §5 AC — без обмеження. Не намагайся покрити все тут.                  -->
-<!-- 📌 Приклад: «methodist → web-app: складає чорновик → web-app → content-api: зберегти». -->
+<!-- One sequenceDiagram per PRD §9 transition that crosses a context boundary; at most two here for S, the
+rest go to complete-sequence-diagrams. Participants are §5 containers. Messages are semantic ("move the
+title deeds"), no HTTP verbs, paths or status numbers. Each refusing alt branch ends with its §10.2 code. -->
 
-**Critical flow 1: <flow name>**
+**Flow 1: <transition from PRD §9>** (<AC ids>)
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant API
-    participant Service
-    participant DB
-    User->>API: <request>
-    API->>Service: <call>
-    Service->>DB: <write tx>
-    DB-->>Service: ok
-    Service-->>API: result
-    API-->>User: 201
+    actor <role>
+    participant <ctx> as <ctx> context
+    participant sqlite as SQLite file
+    <role>->><ctx>: <what they ask>
+    alt <refusal condition>
+        <ctx>-->><role>: refused, <ctx>.<error_name>
+    else <happy condition>
+        <ctx>->>sqlite: <write>
+        <ctx>-->><role>: <result>
+    end
 ```
-
-<!-- For XS/S: 1 flow above is enough. For M+: add 2-4 more (e.g. failure-mode flow, async flow). -->
-
-**Critical flow 2: <e.g. async event propagation>** — <if applicable, otherwise N/A>.
 
 ## 7. Deployment view
 
-<!-- 🎯 Навіщо: ТОПОЛОГІЯ, яку DevOps має знати без читання Helm-чартів — скільки реплік,  -->
-<!--           де живе фоновий обробник, ПРИ ЯКИХ ЧИСЛАХ масштабуємось.                     -->
-<!-- 📋 Що писати: 2-3 речення про топологію + метрики + алерти + конкретні числа-пороги.   -->
-<!-- 📌 Приклад: «500 IC → партиціонування за кварталом» (не «при зростанні подумаємо»).    -->
-<!-- 🎯 Можна N/A для XS/S функцій, що переюзають існуюче розгортання без змін.            -->
+<!-- Default: one process, one SQLite file, nothing changes. Then write the N/A marker and one line. Fill it
+only when the feature adds a process, a port, an env variable or a scheduled job. -->
 
-<Topology in 2-3 sentences. Where it runs (k8s / VM / serverless), replicas, scaling thresholds.>
-
-**Monitoring:**
-- <Metrics — e.g. Prometheus `<metric_name>`>
-- <Alerts — e.g. "outbox lag > 10 min → page on-call">
-- <Tracing — e.g. OpenTelemetry HTTP spans>
-
-**Scaling thresholds:**
-- <e.g. 500 IC × 5 goals × 26 checkpoints/Q = 65k rows/year — comfortable in one table>
-- <e.g. partitioning by quarter at >500k rows/year>
-
-<!-- For XS/S that doesn't change deployment: <!-- N/A: feature reuses existing deployment unit -->. -->
+<!-- N/A: <reason> -->
 
 ## 8. Crosscutting concepts
 
-<!-- 🎯 Навіщо: НАСКРІЗНІ ПАТЕРНИ, які перетинають кілька модулів: логування, помилки,    -->
-<!--           авторизація, ID strategy, outbox, кеш. ⭐ Друга найгустіша секція.          -->
-<!--           Якщо патерн всередині одного модуля — він НЕ сюди. Якщо це конвенція        -->
-<!--           проєкту в цілому — у CLAUDE.md.                                              -->
-<!-- 📋 Що писати: таблиця концепт / конвенція / де визначено. Один рядок на концепт.      -->
-<!-- 📌 Приклад: «UUID v7 (час+випадковий, сортується) у app-layer» — як default з CLAUDE.md. -->
+<!-- One row per concept that more than one context or every route of the feature relies on. Rows that only
+restate CLAUDE.md say "kept" and link it. -->
 
-| Concept | Convention | Where defined |
+| Concept | Rule in this feature | Where |
 |---|---|---|
-| Logging | <e.g. structured slog, fields `module=<name>`> | <CLAUDE.md §X or here> |
-| Authentication | <e.g. JWT via session middleware> | <CLAUDE.md §X> |
-| Error handling | <e.g. domain sentinel → ports/errors.go → apperr JSON> | <CLAUDE.md §X> |
-| ID strategy | <e.g. UUID v7 in app layer> | <CLAUDE.md §X> |
-| Internationalisation | <e.g. N/A, English only> | — |
-| Observability | <e.g. OpenTelemetry on HTTP boundaries> | — |
-| Outbox / events | <module-specific patterns, if any> | <here> |
+| Refusals | <kinds from errors.ts; codes `<ctx>.<error_name>` from PRD §10.2> | <PRD §10.2, src/shared/errors.ts> |
+| Acting player | <how a request says who acts> | <ADR or §4> |
+| Transactions | <what runs in one transaction; no await inside> | <ADR or src/shared/db.ts> |
+| Time | <where the clock comes from, how tests set it> | <...> |
+| Logging | <what the feature logs, if anything> | <...> |
 
 ## 9. Architecture decisions
 
-<!-- 🎯 Навіщо: ЗВОРОТНИЙ ІНДЕКС на папку adr/. `ls adr/` дає файли, §9 дає семантику —    -->
-<!--           чому вони існують, до якого зрізу SAD привʼязані, у якому статусі.           -->
-<!-- 📋 Що писати: таблиця з 4 колонками. Один рядок на ADR. Mixed status — це OK.         -->
-<!-- 📌 Приклад: «0001 | Зберігати урок як таблицю блоків | Accepted | §4».                -->
+| ADR | Decision | Gate | Status | Section |
+|---|---|---|---|---|
+| [NNNN](./game-adr/NNNN-<ctx>-<decision>.md) | <imperative> | <n of 4> | Accepted | §<N> |
 
-| # | Title | Status | Section |
-|---|---|---|---|
-| <NNNN> | <imperative — e.g. "Use sliding window for rate limiting"> | Accepted | §<N> |
-| <NNNN> | <imperative — e.g. "Co-locate outbox worker in API process"> | Accepted | §<N> |
+Decided inline, below the gate:
 
-ADR files live under `docs/features/<slug>/adr/NNNN-<title>.md`.
+- <decision> (§<N>): <criteria that fired, n of 4>
 
 ## 10. Quality requirements
 
-<!-- 🎯 Навіщо: ДЕРЕВО ЯКОСТЕЙ (Quality Tree) — беремо мету з §1 і розкладаємо на          -->
-<!--           конкретні листя: тести, метрики, конфіги, drill-и. ⭐ Без §10 §1 — це       -->
-<!--           маніфест. З §10 кожна декларація мапиться на щось, ЩО МОЖНА ДОВЕСТИ.        -->
-<!-- 📋 Що писати: на кожну якість з §1 — When / Then / How verify. Числа з PRD §6 NFR     -->
-<!--           ДОСЛІВНО (не округлюй p95 ≤250мс до ≤300мс — це F6-помилка критика).        -->
-<!-- 📌 Приклад: «p95 ≤500 мс на UPDATE блоку, перевіримо k6 load test 100 req/s».        -->
+<!-- One scenario per QG plus one per remaining PRD §6 row. Numbers copied from PRD §6 character for
+character. How verify names the test file and the helper. -->
 
-Each top-3 goal from §1 expanded into a full scenario:
+**QG-1. <name>**
 
-**QG-1. <quality attribute>**
-- **When:** <trigger condition>
-- **Then:** <expected behavior with numbers from PRD NFR>
-- **How verify:** <test / chaos drill / load test / observability>
-
-**QG-2. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
-
-**QG-3. <quality attribute>**
-- **When:** <trigger>
-- **Then:** <expected>
-- **How verify:** <how>
+- When: <trigger>
+- Then: <PRD §6 target, verbatim>
+- How verify: <test/<ctx>/<file>.test.ts through makeTestApp(), what is asserted>
 
 ## 11. Risks and technical debt
 
-<!-- 🎯 Навіщо: ⭐ збирає ВСЕ, що може зламатись — і не лише технічне. Без §11 ризики   -->
-<!--           обговорюються на стендапах і губляться; борг лишається у голові того,    -->
-<!--           хто його прийняв.                                                          -->
-<!-- 📋 Що писати: таблиця ризик/борг — серйозність — мітигація — власник. Технічний    -->
-<!--           борг окремою секцією.                                                      -->
-<!-- 📌 Приклад: «EM не пушить — member не оновлює дані | High | …». Перший ризик —      -->
-<!--           часто продуктовий, не технічний. Це нормально.                            -->
+<!-- Product risk first when a PRD §7 KPI has a trigger. Severity Low / Medium / High, or Open question with
+owner and due. -->
 
-<!-- Severity column literals: Low / Medium / High for regular risks; "Open question" for rows
-     created by Step-7 `Save as Open Question` resolutions (see references/socratic-loop.md). -->
+| Risk | Severity | Mitigation | Owner | Due |
+|---|---|---|---|---|
+| <risk> | <Low/Medium/High/Open question> | <what is done> | <who> | <when, for open questions> |
 
-| Risk / debt | Severity | Mitigation | Owner |
-|---|---|---|---|
-| <e.g. Outbox lag may reach hours during downstream outage> | Medium | <Alert >10 min, on-call playbook, retry backoff> | <DevOps> |
-| <e.g. No event schema versioning in v1> | Medium | <ADR-NNNN planned for v2, graceful handling of unknown fields> | <Backend> |
-| Open architectural decision: <decision-headline> | Open question | Resolve before <stage trigger or YYYY-MM-DD>; <inline rationale from Step-7 Save-as-OQ> | <owner> |
+**Accepted debt**
 
-**Accepted debt (acceptable in v1, plan to fix later):**
-- <e.g. Goal entity is not versioned (immutable) — OK for v1, may need audit versioning in v2>
+- <what is left on purpose and when it is looked at again>
 
 ## 12. Glossary
 
-<!-- 🎯 Навіщо: ⭐ СЛОВНИК ДОМЕНУ, який припиняє суперечки через рік («checkpoint —      -->
-<!--           weekly чи biweekly? Quarter — календарний чи фіскальний?»).                -->
-<!-- 📋 Що писати: таблиця термін / значення. Бізнес-терміни + технічні вперемішку.       -->
-<!--           Один термін може мати дві мови у заголовку: «Goal (Обʼєктив)».              -->
-<!-- 📌 Приклад: «Lesson | урок усередині курсу, що складається з блоків (text, video)». -->
+<!-- Terms from CONTEXT.md this document uses, in its words. A new term goes here marked "not in CONTEXT"
+and to the handoff for /sdlc:fix-term. -->
 
 | Term | Meaning |
 |---|---|
-| <e.g. Goal> | <quarterly intent in statement form> |
-| <e.g. KR> | <Key Result — measurable target linked to a Goal> |
-| <e.g. Checkpoint> | <bi-weekly progress update on a KR> |
+| <term> | <from CONTEXT.md> |
