@@ -318,11 +318,19 @@ Nothing changes: one process, one SQLite file. An offer expires without a job (�
 
 | ADR | Decision | Gate | Status | Section |
 |---|---|---|---|---|
-| [NNNN](./game-adr/NNNN-<ctx>-<decision>.md) | <imperative> | <n of 4> | Accepted | §<N> |
+| [0001](./game-adr/0001-trades-own-trade-offers-in-a-new-context.md) | Own trade offers in a new `trades` context | 4 of 4 | Accepted | §4 |
+| [0002](./game-adr/0002-shared-run-exchange-in-one-transaction.md) | Run one exchange in one SQLite transaction, with `board` and `bank` guarding their own writes | 3 of 4 | Accepted | §4 |
+| [0003](./game-adr/0003-lobby-resolve-the-acting-player-from-a-lobby-issued-secret.md) | Resolve the acting player in `lobby` from a secret it issued | 3 of 4 | Accepted | §4 |
+| [0004](./game-adr/0004-shared-carry-the-dotted-refusal-code-in-the-code-field.md) | Carry the dotted refusal code in the `code` field | 2 of 4 | Accepted | §8 |
 
 Decided inline, below the gate:
 
-- <decision> (§<N>): <criteria that fired, n of 4>
+- two tables in `trades` (§5): database, 1 of 4; the owner kept it inline
+- the read calls `trades` makes to `lobby`, `board` and `bank` (§5): contexts, 1 of 4
+- the order of refusals in both flows (§6): 0 of 4
+- an expired offer is computed from the clock, never written (§8): alternative, 1 of 4
+- one log line per refused acceptance attempt (§8): alternative, 1 of 4
+- no external systems (§3): 0 of 4
 
 ## 10. Quality requirements
 
