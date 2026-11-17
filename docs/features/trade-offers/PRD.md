@@ -46,7 +46,8 @@ Traceability:
   stay outside that size.
 - Assumption about rooms: a player is in at most one room at a time. So the limit of one pending offer, both
   lists of offers and a player's balance are counted per player, not per room; an offer made in a room the
-  proposer has left still counts against the limit until it ends.
+  proposer has left still counts against the limit until it ends
+  ([ADR-0004](./adr/0004-one-room-per-player.md)).
 - Decisions taken in the write-prd interview on 2026-11-17: the offer lifetime is five minutes; each side of an
   offer must give something; a player can look up their own offers on request; the glossary terms dead offer and
   withdrawn offer describe behaviour that is not part of this version (§3).
