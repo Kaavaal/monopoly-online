@@ -318,7 +318,7 @@ sequenceDiagram
         else the recipient or a title deed does not exist
             trades-->>proposer: refused, with the part of the offer to correct
         else the recipient is the proposer, or a player or a title deed is of another room
-            trades-->>proposer: refused, a trade offer is possible only between two different players of the same room
+            trades-->>proposer: refused, a trade offer is possible only between two different players of the same room and only for title deeds of that room
         else a side gives a title deed it does not own, or more money than it has
             trades-->>proposer: refused, with the title deed or the amount the named side cannot give
         else every check passed
@@ -462,7 +462,7 @@ sequenceDiagram
 | AC-15 | `List the offers I made` | flow | |
 | AC-16 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
 | AC-17 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
-| AC-18 | `Critical flow 1: accept a trade offer` | branch | `else a player left the room, a giver is not the owner, or a payer lacks the money` |
+| AC-18 | `Critical flow 1: accept a trade offer`, `Reject a trade offer` | branch | accept: `else a player left the room, a giver is not the owner, or a payer lacks the money`, for either side. Reject checks no room, so a recipient who left can still reject |
 | AC-19 | `Critical flow 1: accept a trade offer` | branch | the second acceptance takes the same refused branch, see the paragraph under the diagram |
 | AC-19b | `Critical flow 1: accept a trade offer` | branch | the same as AC-19, with money the payer cannot cover twice |
 
