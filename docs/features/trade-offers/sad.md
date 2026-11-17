@@ -3,7 +3,7 @@ status: Draft
 owner: "Kaavaal"
 reviewers: []
 updated_at: "2026-11-17"
-feature_size: S
+feature_size: M
 stage: "04-05"
 ticket: ""
 target_surfaces: [backend-service]
@@ -53,8 +53,9 @@ work.
 **Organisational.**
 - No external deadline; the order of upcoming work sets the urgency (PRD §1).
 - Effort budget: not stated in the PRD. Tracked in §11.
-- The feature is sized S on the basis that its prerequisites ship first, each as a separate feature outside
-  this document (PRD §1): rooms with their players, money accounts with balances, title deeds that belong to one
+- The feature is sized M (`.size`): a new context, a new API and migrations, 5–15 PRs. It was walked at S
+  depth before that, on the basis that its prerequisites ship first, each as a separate feature outside this
+  document (PRD §1): rooms with their players, money accounts with balances, title deeds that belong to one
   room, and a way for the product to know which player is acting.
 
 **Conventions.**

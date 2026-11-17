@@ -3,7 +3,7 @@ status: Draft
 owner: "Kaavaal"
 reviewers: []
 updated_at: "2026-11-17"
-feature_size: "S"
+feature_size: "M"
 stage: "07"
 ticket: ""
 ---
