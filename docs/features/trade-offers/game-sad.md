@@ -196,25 +196,105 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- One sequenceDiagram per PRD §9 transition that crosses a context boundary; at most two here for S, the
-rest go to complete-sequence-diagrams. Participants are §5 containers. Messages are semantic ("move the
-title deeds"), no HTTP verbs, paths or status numbers. Each refusing alt branch ends with its §10.2 code. -->
+Two of the four transitions in PRD §9 are drawn: the two that read or change other contexts' data. Rejecting
+an offer, listing offers and the expiry of an offer are left to the next stage. Refusals are checked in the
+order the branches are drawn, top to bottom; the first one that applies is the answer.
 
-**Flow 1: <transition from PRD §9>** (<AC ids>)
+**Flow 1: pending offer → accepted offer** (AC-07, AC-08, AC-09, AC-10, AC-11, AC-11b, AC-13, AC-14, AC-15,
+AC-16)
 
 ```mermaid
 sequenceDiagram
-    actor <role>
-    participant <ctx> as <ctx> context
+    actor recipient
+    participant trades as trades context
+    participant lobby as lobby context
+    participant board as board context
+    participant bank as bank context
     participant sqlite as SQLite file
-    <role>->><ctx>: <what they ask>
-    alt <refusal condition>
-        <ctx>-->><role>: refused, <ctx>.<error_name>
-    else <happy condition>
-        <ctx>->>sqlite: <write>
-        <ctx>-->><role>: <result>
+    recipient->>trades: accept the trade offer
+    trades->>lobby: who is acting
+    lobby-->>trades: the acting player
+    trades->>sqlite: read the offer
+    alt no such offer, or the acting player is neither its proposer nor its recipient
+        trades-->>recipient: refused, trades.offer_not_found
+    else the acting player is its proposer
+        trades-->>recipient: refused, trades.only_recipient_answers
+    else the offer is an accepted offer or a rejected offer
+        trades-->>recipient: refused, trades.offer_already_answered
+    else the offer lifetime has run out
+        trades-->>recipient: refused, trades.offer_expired
+    else the offer is a pending offer
+        trades->>sqlite: begin the transaction
+        trades->>lobby: are both players members of one room
+        alt a player has left the room
+            trades->>sqlite: roll back
+            trades-->>recipient: refused, trades.player_left_room
+        else both are members of the room
+            trades->>board: move the title deeds each side gives
+            alt a title deed has another owner
+                board-->>trades: refused
+                trades->>sqlite: roll back
+                trades-->>recipient: refused, board.deed_owner_changed
+            else every title deed is with the side that gives it
+                board->>sqlite: write the new owners
+                trades->>bank: move the money each side gives
+                alt a side does not hold the money
+                    bank-->>trades: refused
+                    trades->>sqlite: roll back
+                    trades-->>recipient: refused, bank.insufficient_funds
+                else both sides hold the money
+                    bank->>sqlite: write the balances
+                    trades->>sqlite: mark the offer accepted and commit
+                    trades-->>recipient: accepted offer
+                end
+            end
+        end
     end
 ```
+
+After a roll back the offer is still a pending offer (PRD §9). Two acceptances never interleave: each runs
+from "begin the transaction" to "commit" or "roll back" without a pause, so the second one sees what the first
+one committed (AC-11, AC-11b).
+
+**Flow 2: — → pending offer** (AC-01, AC-02, AC-03, AC-04, AC-05, AC-06)
+
+```mermaid
+sequenceDiagram
+    actor proposer
+    participant trades as trades context
+    participant lobby as lobby context
+    participant board as board context
+    participant bank as bank context
+    participant sqlite as SQLite file
+    proposer->>trades: propose a trade offer
+    trades->>lobby: who is acting
+    lobby-->>trades: the acting player, now the proposer
+    alt a side gives nothing, the recipient is the proposer, a deed is named twice, or an amount is not a whole number above zero
+        trades-->>proposer: refused, trades.not_a_trade
+    else the request is a trade
+        trades->>lobby: does the recipient exist, are both members of one room
+        lobby-->>trades: answers
+        trades->>board: who owns each title deed named
+        board-->>trades: owners, none for an unknown deed
+        trades->>bank: how much money the proposer holds
+        bank-->>trades: the balance
+        trades->>sqlite: read the pending offer of this proposer
+        alt the recipient or a title deed does not exist
+            trades-->>proposer: refused, trades.unknown_player_or_deed
+        else the recipient is not in the proposer's room
+            trades-->>proposer: refused, trades.recipient_not_in_room
+        else a deed is not owned by the side that gives it, or the proposer holds less than they give
+            trades-->>proposer: refused, trades.not_yours_to_give
+        else the proposer already has a pending offer
+            trades-->>proposer: refused, trades.pending_offer_exists
+        else nothing stands in the way
+            trades->>sqlite: write the pending offer with its offer lifetime
+            trades-->>proposer: pending offer
+        end
+    end
+```
+
+A request that carries no valid secret has no code in PRD §10.2, so no branch is drawn for it (§11).
 
 ## 7. Deployment view
 
