@@ -123,51 +123,76 @@ C4Context
 
 ## 5. Building block view
 
-<!-- The slice anatomy from ARCHITECTURE.md filled for this feature, then the context map delta, then the
-api table, then the container diagram. Names from the "Containers this repo already has" table in SKILL.md. -->
-
 **Slice**
 
 ```
-src/<ctx>/
-├── domain/<entity>.ts
-├── app/service.ts
-├── infra/sqlite/<entity>Repo.ts
+src/trades/
+├── domain/offer.ts              offer, its states, validation, repository interface
+├── app/service.ts               propose, accept, reject, list; takes the three apis
+├── infra/sqlite/offerRepo.ts
 ├── infra/http/routes.ts
-└── module.ts
-migrations/<next free NNNN>_<ctx>_<name>.sql
-test/<ctx>/<entity>.test.ts
+└── module.ts                    exports TradesApi (empty: nobody calls trades)
+migrations/NNNN_trades_offers.sql   next free number when the feature is built
+test/trades/offer.test.ts
 ```
+
+`trades` owns two tables: trade offers, and the title deeds each side of an offer gives. Columns are left to
+the data model.
 
 **Context map delta**
 
 | Context | Owns | Uses before | Uses after |
 |---|---|---|---|
-| <ctx> | <tables> | <...> | <...> |
+| `trades` (new) | trade offers | — | `lobby`, `board`, `bank` |
+| `lobby` | players, rooms | nothing | nothing |
+| `board` | tiles, title deeds | `lobby` | `lobby` |
+| `bank` | player accounts, transfers | `lobby` | `lobby` |
 
-Creation order in `src/app.ts` after this feature: <lobby, board, bank, turns, ...>.
+Creation order in `src/app.ts` after this feature: lobby, board, bank, turns, trades. Every arrow from `trades`
+points to a context created before it; nothing points to `trades`.
 
 **Api calls across a boundary**
 
+None of these calls exists today; each is built by its prerequisite feature (§2).
+
 | From | To | Call | Reads or writes | PRD AC |
 |---|---|---|---|---|
-| <ctx> | <ctx> | <what it asks, in words> | <read | write> | <AC ids> |
+| `trades` | `lobby` | who is acting, from the secret the request carries | read | AC-15, AC-16 |
+| `trades` | `lobby` | does this player exist | read | AC-03 |
+| `trades` | `lobby` | are these two players members of one room | read | AC-05, AC-10 |
+| `trades` | `board` | who owns each of these title deeds, if it exists | read | AC-03, AC-04 |
+| `trades` | `board` | move these title deeds from this owner to that one; refuses when a deed has another owner | write | AC-07, AC-08, AC-11 |
+| `trades` | `bank` | how much money this player holds | read | AC-04 |
+| `trades` | `bank` | move this amount from this player to that one; refuses when the player does not hold it | write | AC-07, AC-09, AC-11b |
 
 ```mermaid
 C4Container
-    title <feature> — Containers
+    title trade offers — Containers
 
-    Person(<role>, "<glossary role>")
+    Person(proposer, "proposer")
+    Person(recipient, "recipient")
 
     Container_Boundary(game, "monopoly-online backend, one Node.js process") {
-        Container(<ctx>, "<ctx> context", "TypeScript", "<what it owns>")
+        Container(trades, "trades context", "TypeScript", "Trade offers and the exchange")
+        Container(lobby, "lobby context", "TypeScript", "Players, rooms, the acting player")
+        Container(board, "board context", "TypeScript", "Title deeds and their owners")
+        Container(bank, "bank context", "TypeScript", "Player accounts, transfers")
     }
 
     ContainerDb(sqlite, "SQLite file", "node:sqlite", "Each context owns its tables")
 
-    Rel(<role>, <ctx>, "<what they do>", "HTTP, JSON")
-    Rel(<ctx>, sqlite, "<reads and writes what>", "SQL")
+    Rel(proposer, trades, "Creates and lists trade offers", "HTTP, JSON")
+    Rel(recipient, trades, "Lists, accepts, rejects trade offers", "HTTP, JSON")
+    Rel(trades, lobby, "Asks who is acting and who shares a room", "LobbyApi, in-process")
+    Rel(trades, board, "Reads owners, moves title deeds", "BoardApi, in-process")
+    Rel(trades, bank, "Reads balances, moves money", "BankApi, in-process")
+    Rel(trades, sqlite, "Reads and writes trade offers", "SQL")
+    Rel(lobby, sqlite, "Reads players and rooms", "SQL")
+    Rel(board, sqlite, "Reads and writes owners", "SQL")
+    Rel(bank, sqlite, "Reads and writes balances", "SQL")
 ```
+
+`turns` is not drawn: the feature does not call it.
 
 ## 6. Runtime view
 
