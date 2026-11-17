@@ -38,10 +38,15 @@ Traceability:
   a deed's owner. Refusals come in three kinds: the thing does not exist, the action conflicts with the current
   state, the input is not valid.
 - [ARCHITECTURE.md](../../../ARCHITECTURE.md): the parts of the product that will hold money and turns are still
-  empty, and each part owns its own data. Which part owns trade offers is not decided (§8).
-- Prerequisites, each a separate feature and outside this PRD (the feature is sized S on that basis): rooms with
-  their players, money accounts with balances, title deeds that belong to one room, and a way for the product to
-  know which player is acting.
+  empty, and each part owns its own data. Trade offers are owned by a new part of the product
+  ([ADR-0001](./adr/0001-own-trade-offers-in-a-new-trades-context.md)).
+- Prerequisites, each a separate feature and outside this PRD: rooms with their players, money accounts with
+  balances, title deeds that belong to one room, and a way for the product to know which player is acting. The
+  feature is sized M: a new part of the product, new actions for players and new stored data; the prerequisites
+  stay outside that size.
+- Assumption about rooms: a player is in at most one room at a time. So the limit of one pending offer, both
+  lists of offers and a player's balance are counted per player, not per room; an offer made in a room the
+  proposer has left still counts against the limit until it ends.
 - Decisions taken in the write-prd interview on 2026-11-17: the offer lifetime is five minutes; each side of an
   offer must give something; a player can look up their own offers on request; the glossary terms dead offer and
   withdrawn offer describe behaviour that is not part of this version (§3).
@@ -73,6 +78,10 @@ Traceability:
 - A history of answered offers for the recipient: the recipient's list holds only the pending offers addressed
   to them. Offers they already answered and expired offers are not listed in this version; a recipient who tries
   to answer such an offer is still told how it ended (AC-09, AC-12).
+- Looking up a single offer: a player sees offers only in their two lists (AC-13, AC-15); there is no way to
+  ask for one offer on its own.
+- A stored record of acceptance attempts: a refused acceptance changes nothing in the game and is kept only in
+  the product's log of requests, which is where the Refused acceptances KPI is counted (§7).
 - A check that a trade is fair: a title deed may be traded for a single coin. Collusion is an accepted risk in
   this version (§6.1).
 
@@ -143,7 +152,9 @@ names the same title deed twice, or names a title deed or a player that does not
 **Given** a proposer is in a room with another player
 **When** the proposer submits an offer in which one side gives neither a title deed nor money
 **Then** the system creates no offer and tells the proposer that each side of a trade offer must give at least
-one title deed or some money
+one title deed or some money. An amount of zero means the side gives no money: a side with no title deed and an
+amount of zero gives nothing and is refused here, while a side that gives a title deed and an amount of zero is
+a valid side
 
 ### AC-04 (US-01) — domain invariant
 
@@ -155,15 +166,16 @@ and when the current one runs out
 ### AC-05 (US-01) — cross-context
 
 **Given** a proposer is in a room
-**When** the proposer addresses an offer to themselves or to a player who is not in the same room
+**When** the proposer addresses an offer to themselves or to a player who is not in the same room, or names a
+title deed that belongs to another room
 **Then** the system creates no offer and tells the proposer that a trade offer is possible only between two
-different players of the same room
+different players of the same room and only for title deeds of that room
 
 ### AC-06 (US-01) — cross-context
 
 **Given** a proposer and another player are in the same room
-**When** the proposer submits an offer in which a side gives a title deed it does not own, or more money than it
-has
+**When** the proposer submits an offer in which a side gives a title deed of their room that it does not own,
+or more money than it has
 **Then** the system creates no offer and tells the proposer which title deed or which amount the named side
 cannot give
 
@@ -232,7 +244,7 @@ gives and when its offer lifetime runs out; offers they already answered and exp
 ### AC-14 (US-05) — authorization
 
 **Given** a trade offer in any state between a proposer and a recipient
-**When** another player, who is neither of them, attempts to see, accept or reject it
+**When** another player, who is neither of them, attempts to find it in their lists, accept it or reject it
 **Then** the system does not reveal that the offer exists and changes nothing
 
 ### AC-15 (US-06) — happy path
@@ -259,10 +271,11 @@ money changes hands, and the offer stays pending until it is rejected or expires
 
 ### AC-18 (US-07) — cross-context
 
-**Given** a pending offer whose proposer has left the room
+**Given** a pending offer one of whose sides, the proposer or the recipient, has left the room
 **When** the recipient accepts the offer
 **Then** the system refuses the acceptance and tells the recipient that both players must be in the room; no
-title deed and no money changes hands, and the offer stays pending until it is rejected or expires
+title deed and no money changes hands, and the offer stays pending until it is rejected or expires. A recipient
+who has left the room still finds the offer among their pending offers and can reject it
 
 ### AC-19 (US-07) — domain invariant
 
@@ -271,14 +284,33 @@ title deed and no money changes hands, and the offer stays pending until it is r
 **Then** exactly one acceptance goes through in full and the other is refused as in AC-16; the title deed has
 one owner, and the total money held by the players of the room is the same as before the two acceptances
 
+### AC-19b (US-07) — domain invariant
+
+**Given** two pending offers in which the same player gives money, and that player has enough for either offer
+but not for both
+**When** both offers are accepted at the same moment
+**Then** exactly one acceptance goes through in full and the other is refused as in AC-17; the refused offer
+stays pending, and the total money held by the players of the room is the same as before the two acceptances
+
+### Which refusal applies when several do
+
+When an attempt to accept or reject an offer fails more than one check, the player is told the first that fails,
+in this order:
+
+1. the offer exists and the acting player is one of its sides (AC-14);
+2. the acting player is its recipient (AC-08);
+3. the offer is still pending (AC-09, AC-12);
+4. on acceptance only: both sides are in the room (AC-18), then each side owns every title deed it gives
+   (AC-16), then each side has the money it gives (AC-17).
+
 ## 6. Non-functional requirements
 
 | Aspect | Target | Measurement |
 |---|---|---|
-| Latency p95, making or answering an offer | ≤ 250 ms | server-side duration of the propose, accept and reject actions, sampled in the automated test run |
-| Latency p95, listing a player's offers | ≤ 150 ms | server-side duration of the two list actions, same run |
+| Latency p95, making or answering an offer | ≤ 250 ms | server-side duration of the propose, accept and reject actions: at least 100 calls of each in one automated run, in a room of 8 players where the acting player already has 50 ended offers |
+| Latency p95, listing a player's offers | ≤ 150 ms | server-side duration of the two list actions: at least 100 calls of each, same run and same room |
 | Exchange atomicity | 0 partial exchanges: after every acceptance attempt the total money in the room is unchanged and every title deed has exactly one owner | invariant check after each acceptance in the automated tests, including a run in which the exchange is made to fail midway |
-| Concurrency | of 2 acceptances competing for one title deed, exactly 1 goes through, in 100 of 100 repetitions | repeated automated test |
+| Concurrency | of 2 acceptances competing for one title deed (AC-19), or for money one player cannot pay twice (AC-19b), exactly 1 goes through, in 100 of 100 repetitions of each case | repeated automated test |
 | Expiry accuracy | 0 answers accepted after the five-minute lifetime has run out | automated test with a controlled clock |
 
 Availability: N/A. The product has no production deployment and no SLO window yet.
@@ -293,11 +325,14 @@ Availability: N/A. The product has no production deployment and no SLO window ye
   about an offer: the proposer sees every offer they made, the recipient sees the pending offers addressed to
   them and is told how an offer ended when they try to answer it.
   All three depend on a capability the product lacks today: knowing which player is acting (§8).
+- **Visibility inside a room:** every player's balance and the owner of every title deed are visible to all
+  players of the room, as at a real table. So the refusals of AC-06 and AC-17 name the side, the title deed and
+  the amount; they reveal nothing a player of the room could not already see.
 - **Abuse cases:**
   - Acting as another player (making an offer in someone else's name, answering an offer addressed to someone
     else): denied. This cannot be enforced until the product knows which player is acting.
   - Cross-room trade (an offer to a player of another room, or naming a title deed of another room): denied, with
-    the same-room rule explained.
+    the same-room rule explained (AC-05).
   - Snooping on other players' offers, pending or ended: the product does not reveal that the offer exists.
   - One-coin dump (a losing or leaving player hands every title deed to a friend for a single coin): allowed
     and accepted in this version. Signal to watch: accepted offers in which one side gives only one coin.
@@ -312,22 +347,27 @@ Availability: N/A. The product has no production deployment and no SLO window ye
   group. Baseline: about 10% (assumed, unmeasured), target: 35% over the first 50 finished games. Measurement
   plan: counted from the first trial games once a finished game is defined (§8).
 - **Answered offers** — share of trade offers accepted or rejected before they expire. Baseline: 0 (new),
-  target: at least 60% over the first five trial tables.
+  target: at least 60% over the first five trial games. Measurement plan: counted from the recorded state of
+  the offers made in those games.
 - **Refused acceptances** — share of acceptance attempts refused because ownership, a balance or the room
   changed. Baseline: 0 (new), target: at most 10% over the first 50 acceptance attempts. Above that, Approach C
-  comes back (idea brief §14).
+  comes back (idea brief §14). Measurement plan: counted from the product's log of requests, refused
+  acceptances against all acceptance attempts; the attempts are not stored as game data (§3).
 - **Trade integrity** — number of acceptances after which the total money in a room changed. Baseline: 0,
   target: 0 at all times.
 
 ## 8. Open questions
 
-- [ ] How does the product know which player is acting? Default now: every permission check in §5 assumes it
-  does. — owner: Kaavaal, due: before /sdlc:architecture-design
+- [x] How does the product know which player is acting? Closed by
+  [ADR-0003](./adr/0003-identify-the-acting-player-by-a-lobby-issued-secret.md). — owner: Kaavaal, due: before
+  /sdlc:architecture-design
 - [ ] In what order do rooms, money accounts and per-room title deeds land, each as its own feature? Default
   now: all three ship before trade offers. — owner: Kaavaal, due: before /sdlc:break-tasks
-- [ ] Which part of the product owns trade offers, and how does one acceptance change title deeds and money
-  together? Default now: undecided. — owner: Kaavaal, due: /sdlc:architecture-design
+- [x] Which part of the product owns trade offers, and how does one acceptance change title deeds and money
+  together? Closed by [ADR-0001](./adr/0001-own-trade-offers-in-a-new-trades-context.md) and
+  [ADR-0002](./adr/0002-exchange-in-one-sqlite-transaction-with-guarded-commands.md). — owner: Kaavaal, due:
+  /sdlc:architecture-design
 - [ ] What is a finished game, the base of the first KPI? Default now: the KPI is not measured until this is
   defined. — owner: Kaavaal, due: with the turns feature
 - [ ] Is five minutes the right offer lifetime? Default now: five minutes. — owner: Kaavaal, due: after the
-  first five trial tables
+  first five trial games
