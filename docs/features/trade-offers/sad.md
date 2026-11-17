@@ -358,25 +358,28 @@ Availability: N/A. The product has no production deployment and no SLO window ye
 
 ## 11. Risks and technical debt
 
-<!-- 🎯 Навіщо: ⭐ збирає ВСЕ, що може зламатись — і не лише технічне. Без §11 ризики   -->
-<!--           обговорюються на стендапах і губляться; борг лишається у голові того,    -->
-<!--           хто його прийняв.                                                          -->
-<!-- 📋 Що писати: таблиця ризик/борг — серйозність — мітигація — власник. Технічний    -->
-<!--           борг окремою секцією.                                                      -->
-<!-- 📌 Приклад: «EM не пушить — member не оновлює дані | High | …». Перший ризик —      -->
-<!--           часто продуктовий, не технічний. Це нормально.                            -->
-
-<!-- Severity column literals: Low / Medium / High for regular risks; "Open question" for rows
-     created by Step-7 `Save as Open Question` resolutions (see references/socratic-loop.md). -->
-
 | Risk / debt | Severity | Mitigation | Owner |
 |---|---|---|---|
-| <e.g. Outbox lag may reach hours during downstream outage> | Medium | <Alert >10 min, on-call playbook, retry backoff> | <DevOps> |
-| <e.g. No event schema versioning in v1> | Medium | <ADR-NNNN planned for v2, graceful handling of unknown fields> | <Backend> |
-| Open architectural decision: <decision-headline> | Open question | Resolve before <stage trigger or YYYY-MM-DD>; <inline rationale from Step-7 Save-as-OQ> | <owner> |
+| With no signal that an offer arrived, the recipient does not notice it, offers expire and players give up trading | Medium | After the first trial tables, look at the share of expired offers; if it is above one half, bring the arrival signal back into the plan. PRD §7 sets the target for answered offers at at least 60% | Kaavaal |
+| None of the four prerequisites exists in the code: rooms with their players, money accounts, title deeds that belong to one room, the player secret. Trade offers can be neither built nor tested before them | High | Each is a separate feature. Their order is an open question of PRD §8, due before `/sdlc:break-tasks`. §5 lists what `trades` needs from each api | Kaavaal |
+| Two PRDs describe this feature and disagree: `PRD.md` and `game-prd.md` differ in the latency targets, in whether the recipient's money is checked when an offer is made, and in the numbering of acceptance criteria. This document follows `PRD.md` only | Medium | Bring the two into line or retire one before `/sdlc:break-tasks`; then re-check §10 against the surviving numbers | Kaavaal |
+| Today anyone can change the owner of a title deed through the existing `board` route, past the guarded command of ADR-0002 | Medium | The prerequisite feature for title deeds that belong to one room restricts or removes that path; until then the QG-1 invariants hold only for changes made through `trades` | Kaavaal |
+| Atomicity and the single winner of a race rest on a convention no tool checks: nothing awaits between the start and the end of the exchange transaction. The QG-2 test guards it and does not search for races | Medium | Review; the QG-2 repeated test; the rule is written in §8 and ADR-0002 | Kaavaal |
+| The player secret travels over plain HTTP, cannot be rotated or revoked, and guesses are not rate-limited | Low | Accepted for trial tables on one local network (ADR-0003). Revisit before the backend is reachable from outside it | Kaavaal |
+| The exchange transaction spans writes of three contexts and works only while they share one database file | Low | Recorded in ADR-0002; a context that moves to its own store turns the exchange into a saga | Kaavaal |
+| The PRD states no effort budget (§2) | Low | Set when the work is broken down at `/sdlc:break-tasks` | Kaavaal |
+| The current architecture was read from ARCHITECTURE.md and the code at commit `338436d`; there is no `docs/architecture-map.md`, and the prerequisite features will change `lobby`, `board` and `bank` before this one is built | Low | Run `/sdlc:map-architecture`; re-read §5 against the real apis once the prerequisites land | Kaavaal |
 
-**Accepted debt (acceptable in v1, plan to fix later):**
-- <e.g. Goal entity is not versioned (immutable) — OK for v1, may need audit versioning in v2>
+No architectural decision was left open in this pass. The open questions of PRD §8 that are not architecture
+(what a finished game is, whether five minutes is the right offer lifetime) stay with the PRD.
+
+**Accepted debt (acceptable in this version, plan to fix later):**
+- An expired offer is not stored as a state; it is derived from `expires_at` and the clock, so the KPIs of
+  PRD §7 are counted by a query that compares times.
+- An offer that can no longer be honoured stays a pending offer until it expires (PRD §3). If refused
+  acceptances pass 10% of attempts, closing such offers comes back (PRD §7).
+- The one-coin dump is allowed (PRD §6.1).
+- The offer lifetime is one constant in `trades`; changing it after trial tables is a one-line change.
 
 ## 12. Glossary
 
