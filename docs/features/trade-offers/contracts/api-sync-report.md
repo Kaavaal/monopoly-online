@@ -16,8 +16,7 @@ Not read: `game-prd.md`, `game-sad.md`, `game-data-model.md`, `game-adr/`. They 
 
 ## What changed since run 4
 
-Only `sad.md` §6 changed, by the owner's hand (uncommitted at the time of this run); the contract is as run 4
-left it.
+Only `sad.md` §6 changed, outside this run (commit `1912ea7`); the contract is as run 4 left it.
 
 - The other-room branch of `Propose a trade offer` now answers "a trade offer is possible only between two
   different players of the same room and only for title deeds of that room": word for word the `toSelf` and
