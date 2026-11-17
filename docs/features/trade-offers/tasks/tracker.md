@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|---|
 | T1 | [Promote the staged `trade_offers` migration](./promote-trade-offers-migration.md) | migration | Kaavaal | S | — | done |
 | T2 | [Promote the staged `trade_offer_properties` migration](./promote-trade-offer-properties-migration.md) | migration | Kaavaal | S | T1 | done |
-| T3 | [Add the transaction helper to `src/shared/db.ts`](./add-transaction-helper.md) | infra | Kaavaal | S | — | todo |
+| T3 | [Add the transaction helper to `src/shared/db.ts`](./add-transaction-helper.md) | infra | Kaavaal | S | — | done |
 | T4 | [Hand a clock to `buildApp` and `makeTestApp`](./pass-clock-to-build-app.md) | wiring | Kaavaal | S | — | todo |
 | T5 | [Model the trade offer in `src/trades/domain/offer.ts`](./model-trade-offer-domain.md) | domain | Kaavaal | M | — | todo |
 | T6 | [Add the offer repository on `node:sqlite`](./add-offer-repo.md) | infra | Kaavaal | M | T2, T5 | todo |
