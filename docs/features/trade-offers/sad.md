@@ -521,8 +521,8 @@ blast-radius gate: expiry derived from the clock (§4, choice 4) and no new erro
 
 ## 10. Quality requirements
 
-Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. All scenarios are checked in
-`test/trades/offer.test.ts` through HTTP with `makeTestApp()`.
+Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. QG-1 to QG-3 are checked in
+`test/trades/offer.test.ts` through HTTP with `makeTestApp()`; QG-4 is a separate run (tests/test-plan.md).
 
 **QG-1. Exchange atomicity**
 - **When:** a recipient accepts a pending offer, whether the exchange goes through or fails midway.
@@ -559,7 +559,8 @@ Each quality goal of §1 as a scenario. Targets are quoted from PRD §6. All sce
   (PRD §6).
 - **How verify:** the server-side duration of the propose, accept and reject actions and of the two list
   actions, "at least 100 calls of each in one automated run, in a room of 8 players where the acting player
-  already has 50 ended offers" (PRD §6).
+  already has 50 ended offers" (PRD §6). It runs before a release, outside `pnpm check`, so a busy machine
+  cannot fail a commit on a time threshold.
 
 Availability: N/A. The product has no production deployment and no SLO window yet (PRD §6).
 
