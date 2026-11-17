@@ -93,13 +93,33 @@ C4Context
 
 ## 4. Solution strategy
 
-<!-- 2-4 choices, each a heading line plus 2-3 sentences of why, tied to a QG or a §2 constraint. The first
-is always "which context owns the feature's data". Mark each one with its ADR or "inline". -->
-
 **Surface**: backend-service.
 
-1. **<choice>** (<ADR-NNNN | inline>): <why>.
-2. **<choice>** (<ADR-NNNN | inline>): <why>.
+1. **A new `trades` context owns trade offers**
+   ([ADR-0001](./game-adr/0001-trades-own-trade-offers-in-a-new-context.md)): a trade offer is neither a title
+   deed nor an account, and one acceptance changes both. `trades` takes `LobbyApi`, `BoardApi` and `BankApi` and
+   is created last in `src/app.ts` (lobby, board, bank, turns, trades), so the graph stays acyclic and `board`
+   and `bank` stay unaware of each other (§2). It answers PRD §11, first question. Considered: offers inside
+   `board` (needs a new arrow board → bank and `bank` created before `board`); offers inside `bank` (bank →
+   board, and a money context would own deeds in offers).
+2. **One acceptance runs in one SQLite transaction, and `board` and `bank` guard their own writes**
+   ([ADR-0002](./game-adr/0002-shared-run-exchange-in-one-transaction.md)): `trades` opens a transaction, asks
+   `board` to move the deeds and `bank` to move the money, marks the offer accepted, and commits; nothing inside
+   awaits. `board` refuses to move a deed whose owner is not the giving side, `bank` refuses to move money a
+   side does not hold, and any refusal rolls everything back, so the offer stays pending. This is QG-1 and
+   QG-2: a crash between the two writes cannot leave a half-done exchange, and of two acceptances the second
+   one sees the first one's result. A small transaction helper is added to `src/shared/db.ts`. Considered:
+   check everything first, then write without a transaction (no race thanks to synchronous SQLite, but a crash
+   or an unexpected error between the writes leaves half an exchange); undo steps on failure (more code, the
+   same crash window).
+3. **The acting player is resolved by `lobby` from a secret it issued to that player**
+   ([ADR-0003](./game-adr/0003-lobby-resolve-the-acting-player-from-a-lobby-issued-secret.md)): every request
+   carries the secret, `trades` asks `LobbyApi` who is acting and never takes a player id for the actor from
+   the body. The secret itself (issue, storage, lookup) is a fourth prerequisite feature in `lobby`; this
+   document fixes only that it exists and what `trades` asks. It answers PRD §11, second question, and makes
+   AC-15 and AC-16 testable. Considered: a player id sent by the client and believed (anyone acts as anyone,
+   against §3 and PRD §8); leaving it undecided for the prerequisite feature (AC-15, AC-16 stay untestable and
+   §6 has no first step).
 
 ## 5. Building block view
 
