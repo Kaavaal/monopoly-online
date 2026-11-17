@@ -8,7 +8,7 @@ acs: ["AC-02", "AC-03", "AC-11"]
 files_hint: ["src/trades/domain/offer.ts"]
 owner: "Kaavaal"
 estimate: "M"
-status: "todo"
+status: "done"
 ---
 
 # T5 — Model the trade offer in `src/trades/domain/offer.ts`
@@ -26,9 +26,9 @@ The rules of an offer live in the domain, not in the schema or the database. Der
 
 ## Definition of Done
 
-- [ ] the file imports nothing outside `src/trades/domain` and `src/shared`
-- [ ] the derived state at exactly `expires_at` is expired (sad §10 QG-3)
-- [ ] `pnpm typecheck` and `pnpm arch:check` green
+- [x] the file imports nothing outside `src/trades/domain` and `src/shared`
+- [x] the derived state at exactly `expires_at` is expired (sad §10 QG-3)
+- [x] `pnpm typecheck` and `pnpm arch:check` green
 
 ## Notes
 

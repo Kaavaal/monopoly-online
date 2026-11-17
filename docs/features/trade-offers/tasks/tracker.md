@@ -10,7 +10,7 @@
 | T2 | [Promote the staged `trade_offer_properties` migration](./promote-trade-offer-properties-migration.md) | migration | Kaavaal | S | T1 | todo |
 | T3 | [Add the transaction helper to `src/shared/db.ts`](./add-transaction-helper.md) | infra | Kaavaal | S | — | done |
 | T4 | [Hand a clock to `buildApp` and `makeTestApp`](./pass-clock-to-build-app.md) | wiring | Kaavaal | S | — | todo |
-| T5 | [Model the trade offer in `src/trades/domain/offer.ts`](./model-trade-offer-domain.md) | domain | Kaavaal | M | — | todo |
+| T5 | [Model the trade offer in `src/trades/domain/offer.ts`](./model-trade-offer-domain.md) | domain | Kaavaal | M | — | done |
 | T6 | [Add the offer repository on `node:sqlite`](./add-offer-repo.md) | infra | Kaavaal | M | T2, T5 | todo |
 | T7 | [Wire the `trades` module and resolve the acting player](./wire-trades-module.md) | wiring | Kaavaal | M | T4, T6, P2 | blocked |
 | T8 | [Propose a trade offer: happy path and request-only refusals](./propose-offer-request-checks.md) | ports | Kaavaal | M | T7, P1, P2, P3, P4 | blocked |
