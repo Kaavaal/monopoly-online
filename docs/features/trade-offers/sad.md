@@ -383,14 +383,23 @@ No architectural decision was left open in this pass. The open questions of PRD 
 
 ## 12. Glossary
 
-<!-- 🎯 Навіщо: ⭐ СЛОВНИК ДОМЕНУ, який припиняє суперечки через рік («checkpoint —      -->
-<!--           weekly чи biweekly? Quarter — календарний чи фіскальний?»).                -->
-<!-- 📋 Що писати: таблиця термін / значення. Бізнес-терміни + технічні вперемішку.       -->
-<!--           Один термін може мати дві мови у заголовку: «Goal (Обʼєктив)».              -->
-<!-- 📌 Приклад: «Lesson | урок усередині курсу, що складається з блоків (text, video)». -->
+Domain terms come from [CONTEXT.md](./CONTEXT.md), which stays the canonical source. The last four rows are
+terms this document introduced; they are not in CONTEXT.md yet and should be added with `/sdlc:fix-term`.
 
 | Term | Meaning |
 |---|---|
-| <e.g. Goal> | <quarterly intent in statement form> |
-| <e.g. KR> | <Key Result — measurable target linked to a Goal> |
-| <e.g. Checkpoint> | <bi-weekly progress update on a KR> |
+| trade offer | A proposal from one player to another player in the same room to give their own title deeds and/or money in exchange for the other's; accepted or rejected as a whole, expires if left unanswered. Not a transfer |
+| proposer | The player who creates a trade offer and names what they give and what they ask for in return |
+| recipient | The one player a trade offer is addressed to and the only player who can accept or reject it |
+| pending offer | A trade offer the recipient has not answered and whose lifetime has not run out; the only kind that can be accepted or rejected |
+| accepted offer | A trade offer the recipient accepted and whose exchange took place in full. Not an acceptance attempt |
+| rejected offer | A trade offer the recipient explicitly refused |
+| expired offer | A trade offer the recipient did not answer within its lifetime |
+| offer lifetime | The fixed time a trade offer stays pending after it is created, the same for every offer: five minutes |
+| dead offer, withdrawn offer | Glossary terms for behaviour that is not part of this version; neither is a state here |
+| room | The group of players who play one game together on one board; trade offers are possible only inside one room |
+| color group | The fixed set of title deeds of one color, as defined by the rules of the game |
+| acting player | The player a request is made by, established from the player secret; never taken from a player id named in the request |
+| player secret | A random value `lobby` issues once when a player is created and that proves who is acting. Not the player's `token`, which is the piece on the board |
+| exchange | What an acceptance carries out: every title deed and all money named in a trade offer change hands in one transaction |
+| guarded command | A command in a context's api that checks that context's own rule before it writes and refuses with `conflict` when the rule is broken |
