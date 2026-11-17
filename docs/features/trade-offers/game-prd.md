@@ -65,7 +65,8 @@ Decisions kept against the critic:
 - Withdrawing an offer: parked with approaches B and C; the proposer waits for an answer or for the
   5 minutes.
 - Closing a pending offer the moment it can no longer be honoured: parked with approaches B and C. Such an
-  offer stays pending, cannot be accepted, and expires.
+  offer stays pending; an acceptance goes through only if the re-check passes at that moment, else the offer
+  expires.
 - A signal that an offer arrived, and offers visible to the whole room: parked with approach B; the game
   cannot reach players yet.
 - A pause before proposing again after a rejection: no real table has one; watched in §8.
@@ -183,7 +184,7 @@ for them nothing changes hands
 
 ### AC-11b (US-02) — timing
 
-**Given** a player holding 450 who gives 300 in each of two pending offers: one they proposed, one addressed
+**Given** a player holding 500 who gives 300 in each of two pending offers: one they proposed, one addressed
 to them
 **When** both offers are accepted at the same moment
 **Then** exactly one exchange takes place in full; the other acceptance is refused because there is not
