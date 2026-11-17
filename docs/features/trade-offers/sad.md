@@ -219,35 +219,60 @@ C4Container
 
 ## 6. Runtime view
 
-<!-- 🎯 Навіщо: ПОТІК У RUNTIME для 1-2 критичних сценаріїв. Хто з ким коли і у якому     -->
-<!--           порядку говорить. Без §6 §5 — лише купа коробок без життя.                  -->
-<!-- 📋 Що писати: Mermaid sequenceDiagram. Учасники — імена з §5 (не вигадуй нові!).      -->
-<!--           Повідомлення семантичні («складає чорновик»), БЕЗ HTTP-методів/шляхів —     -->
-<!--           ендпоінт-рівневі sequence-діаграми зʼявляться у stage 06 (api-forge).        -->
-<!-- ⏳ RESERVED FOR SEQUENCES: architecture-design сіє лише primary flow(s) тут.          -->
-<!--           complete-sequence-diagrams (stage 06) ДОПОВНЮЄ §6 кожним критичним flow /    -->
-<!--           кожним §5 AC — без обмеження. Не намагайся покрити все тут.                  -->
-<!-- 📌 Приклад: «methodist → web-app: складає чорновик → web-app → content-api: зберегти». -->
+One flow is seeded here: accepting a trade offer. It is the only flow that crosses all four contexts and the
+one the three quality goals are about. The `complete-sequence-diagrams` stage adds the remaining flows
+(propose, reject, the two lists, expiry) and maps every acceptance criterion to a flow or a branch.
 
-**Critical flow 1: <flow name>**
+**Critical flow 1: accept a trade offer** (PRD AC-07, AC-08, AC-09, AC-12, AC-14, AC-16 to AC-19)
 
 ```mermaid
 sequenceDiagram
-    actor User
-    participant API
-    participant Service
-    participant DB
-    User->>API: <request>
-    API->>Service: <call>
-    Service->>DB: <write tx>
-    DB-->>Service: ok
-    Service-->>API: result
-    API-->>User: 201
+    actor recipient
+    participant trades as trades context
+    participant lobby as lobby context
+    participant board as board context
+    participant bank as bank context
+    participant sqlite as SQLite database file
+
+    recipient->>trades: accept the trade offer, sending the player secret
+    trades->>lobby: which player holds this secret
+    lobby-->>trades: the acting player
+    trades->>sqlite: begin the transaction and load the offer
+    alt no such offer, or the acting player is neither its proposer nor its recipient
+        trades->>sqlite: roll back
+        trades-->>recipient: refused, no such offer
+    else the acting player is its proposer
+        trades->>sqlite: roll back
+        trades-->>recipient: refused, only the recipient can answer
+    else the offer is accepted, rejected or expired
+        trades->>sqlite: roll back
+        trades-->>recipient: refused, with how the offer ended
+    else the offer is a pending offer
+        trades->>lobby: are both players still in the room
+        lobby-->>trades: yes or no
+        trades->>board: move every title deed named in the offer
+        board->>sqlite: check each giver is the owner, write the new owners
+        board-->>trades: done or refused
+        trades->>bank: move all money named in the offer
+        bank->>sqlite: check each payer holds the money, write the new balances
+        bank-->>trades: done or refused
+        alt every step passed
+            trades->>sqlite: mark the offer accepted and commit
+            trades-->>recipient: accepted, with what was given and received
+        else a player left the room, a giver is not the owner, or a payer lacks the money
+            trades->>sqlite: roll back
+            trades-->>recipient: refused with the reason, the offer stays pending
+        end
+    end
 ```
 
-<!-- For XS/S: 1 flow above is enough. For M+: add 2-4 more (e.g. failure-mode flow, async flow). -->
+The first refusal ends the flow: later steps do not run, and the rollback undoes any step that already wrote.
+Nothing between "begin the transaction" and "commit" or "roll back" awaits, so a second acceptance that
+competes for the same title deed or the same money starts after this one has finished and takes the refused
+branch (ADR-0002).
 
-**Critical flow 2: <e.g. async event propagation>** — <if applicable, otherwise N/A>.
+**Critical flow 2:** not seeded in this pass. The feature has no asynchronous step and no event; the other
+flows are synchronous and are drawn by `complete-sequence-diagrams`.
 
 ## 7. Deployment view
 
