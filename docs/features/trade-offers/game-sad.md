@@ -304,16 +304,15 @@ Nothing changes: one process, one SQLite file. An offer expires without a job (�
 
 ## 8. Crosscutting concepts
 
-<!-- One row per concept that more than one context or every route of the feature relies on. Rows that only
-restate CLAUDE.md say "kept" and link it. -->
-
 | Concept | Rule in this feature | Where |
 |---|---|---|
-| Refusals | <kinds from errors.ts; codes `<ctx>.<error_name>` from PRD §10.2> | <PRD §10.2, src/shared/errors.ts> |
-| Acting player | <how a request says who acts> | <ADR or §4> |
-| Transactions | <what runs in one transaction; no await inside> | <ADR or src/shared/db.ts> |
-| Time | <where the clock comes from, how tests set it> | <...> |
-| Logging | <what the feature logs, if anything> | <...> |
+| Refusals | kinds stay `invalid` / `not_found` / `conflict`; every `trades` route answers with the dotted code of PRD §10.2 in the `code` field, under the status of its kind. The three factories in `src/shared/errors.ts` take an optional code and default to the bare kind, so `lobby` and `board` routes answer as before. A refusal thrown by `board` or `bank` inside an exchange carries their own code and passes through `trades` unchanged | [ADR-0004](./game-adr/0004-shared-carry-the-dotted-refusal-code-in-the-code-field.md), PRD §10.2 |
+| Acting player | resolved by `lobby` from the secret the request carries, first step of every route; never read from the body | [ADR-0003](./game-adr/0003-lobby-resolve-the-acting-player-from-a-lobby-issued-secret.md) |
+| Hidden offers | an offer is shown only to its proposer and its recipient; to anyone else it is answered exactly as an offer that never existed, and lists hold only the actor's own offers | PRD §8, §10.1, AC-16 |
+| Transactions | only an acceptance opens one, because it writes in three contexts; propose and reject are a lookup and one write in `trades` with no `await` between them | [ADR-0002](./game-adr/0002-shared-run-exchange-in-one-transaction.md), `src/shared/db.ts` |
+| Time | an offer stores the moment its offer lifetime runs out. "Expired" is never written: a pending offer whose moment has come is an expired offer on every read and every answer, with no job or timer. The clock is the system clock; tests move it with vitest fake timers | PRD §9, AC-13, AC-18 |
+| Logging | one info line per acceptance attempt refused by the re-check, with the offer id and the code, no player names; it is what M3 is counted from. Nothing else is added | PRD §7 M3 |
+| Validation | JSON schema on every route for params, body and response; unknown body fields are refused; money is whole numbers | kept, [CLAUDE.md](../../../CLAUDE.md), `src/app.ts` |
 
 ## 9. Architecture decisions
 
