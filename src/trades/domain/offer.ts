@@ -48,8 +48,9 @@ export function validateTerms(terms: OfferTerms): void {
   ] as const;
 
   for (const [name, side] of sides) {
-    if (!Number.isInteger(side.money) || side.money < 0) {
-      throw invalid(`${name}.money must be a whole number of at least 0`);
+    // Safe: a larger amount in a JSON body has already been rounded to another number.
+    if (!Number.isSafeInteger(side.money) || side.money < 0) {
+      throw invalid(`${name}.money must be a whole number from 0 to ${Number.MAX_SAFE_INTEGER}`);
     }
   }
   // Code points, as JSON schema maxLength counts them.
