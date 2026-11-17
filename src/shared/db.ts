@@ -12,7 +12,11 @@ export function openDb(path = ':memory:'): Db {
 /** A promise as the body's result means an async body, which would outlive the transaction. */
 type Sync<T> = T extends PromiseLike<unknown> ? never : T;
 
-/** The types let an async body through as `transaction<void>` or as `any`; refuse it before the commit. */
+/**
+ * Known limit: the types let an async body through as `transaction<void>` or as `any`. This refuses its
+ * promise before the commit, so what the body wrote before its first await is rolled back. It cannot stop
+ * the writes the body makes after that await: they run later, outside any transaction, and stay.
+ */
 function sync<T>(result: T): T {
   if (result instanceof Promise) throw new Error('transaction body must be synchronous');
   return result;
